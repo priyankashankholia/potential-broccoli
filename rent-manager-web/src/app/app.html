@@ -1,121 +1,118 @@
-<div class="app-shell">
+<div class="dashboard">
 
-  <header class="topbar">
+  <header class="header">
     <div>
-      <div class="brand">NARERA COMPLEX</div>
-      <div class="subtitle">Property Management</div>
-    </div>
-
-    <div class="landlord-badge">
-      Landlord
+      <h1>Rent Manager</h1>
+      <p>Landlord Dashboard</p>
     </div>
   </header>
 
-  <main class="content">
+  @if (message) {
+    <div class="success-message">
+      {{ message }}
+    </div>
+  }
 
-    @if (message) {
-      <div class="alert success">
-        {{ message }}
+  @if (errorMessage) {
+    <div class="error-message">
+      {{ errorMessage }}
+    </div>
+  }
+
+  <!-- Dashboard summary -->
+
+  <section class="summary">
+
+    <div class="summary-card">
+      <span>Shops</span>
+      <strong>{{ shops().length }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Occupied</span>
+      <strong>{{ occupiedCount }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Vacant</span>
+      <strong>{{ vacantCount }}</strong>
+    </div>
+
+  </section>
+
+  <!-- Shops -->
+
+  <section class="card">
+
+    <div class="section-header">
+      <div>
+        <h2>Shops</h2>
+        <p>Manage your shops and tenants</p>
       </div>
-    }
+    </div>
 
-    @if (errorMessage) {
-      <div class="alert error">
-        {{ errorMessage }}
+    @if (shops().length === 0) {
+
+      <div class="empty-state">
+        <h3>No shops found</h3>
+        <p>Add your first shop to get started.</p>
       </div>
-    }
 
-    @if (!selectedTenantId && !selectedShopId) {
+    } @else {
 
-      <section class="welcome">
-        <h1>Dashboard</h1>
-        <p>Manage your shops and tenants.</p>
-      </section>
-
-      <section class="stats">
-
-        <div class="stat-card">
-          <span>Total Shops</span>
-          <strong>{{ shops().length }}</strong>
-        </div>
-
-        <div class="stat-card">
-          <span>Occupied</span>
-          <strong>
-            {{ shops().filter(s => s.tenant !== null).length }}
-          </strong>
-        </div>
-
-        <div class="stat-card">
-          <span>Vacant</span>
-          <strong>
-            {{ shops().filter(s => s.tenant === null).length }}
-          </strong>
-        </div>
-
-      </section>
-
-      <section class="panel">
-
-        <div class="panel-header">
-          <div>
-            <h2>Shops</h2>
-            <p>Commercial units at Narera Complex</p>
-          </div>
-        </div>
+      <div class="shop-list">
 
         @for (shop of shops(); track shop.id) {
 
           <div class="shop-card">
 
-            <div class="shop-icon">
-              {{ shop.name.charAt(0) }}
-            </div>
-
             <div class="shop-info">
 
-              <h3>{{ shop.name }}</h3>
+              <div class="shop-title">
+                <h3>{{ shop.name }}</h3>
+
+                @if (shop.isOccupied) {
+                  <span class="status occupied">
+                    Occupied
+                  </span>
+                } @else {
+                  <span class="status vacant">
+                    Vacant
+                  </span>
+                }
+              </div>
 
               @if (shop.tenant) {
 
-                <span class="status occupied">
-                  OCCUPIED
-                </span>
+                <div class="tenant-info">
 
-                <p>
-                  Tenant: {{ shop.tenant.name }}
-                </p>
+                  <p>
+                    <strong>Tenant:</strong>
+                    {{ shop.tenant.name }}
+                  </p>
 
-              } @else {
+                  <p>
+                    <strong>Mobile:</strong>
+                    {{ shop.tenant.mobileNumber }}
+                  </p>
 
-                <span class="status vacant">
-                  VACANT
-                </span>
+                  <p>
+                    <strong>Monthly Rent:</strong>
+                    ₹{{ shop.tenant.monthlyRent }}
+                  </p>
 
-                <p>
-                  No tenant assigned
-                </p>
-
-              }
-
-            </div>
-
-            <div class="shop-action">
-
-              @if (shop.tenant) {
+                </div>
 
                 <button
                   type="button"
-                  class="primary-button"
                   (click)="manageTenant(shop.tenant.id)">
-                  Manage Tenant
+                  Manage Rent
                 </button>
 
               } @else {
 
                 <button
                   type="button"
-                  class="primary-button"
                   (click)="showTenantForm(shop.id)">
                   Add Tenant
                 </button>
@@ -128,290 +125,268 @@
 
         }
 
-      </section>
+      </div>
 
     }
 
-    @if (selectedShopId) {
+  </section>
 
-      <section class="panel">
+  <!-- Add Tenant -->
+
+  @if (selectedShopId) {
+
+    <section class="card">
+
+      <div class="section-header">
+        <div>
+          <h2>Add Tenant</h2>
+          <p>
+            Assign a tenant to the selected shop.
+          </p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+
+        <label>
+          Tenant Name
+          <input
+            type="text"
+            [(ngModel)]="tenantName"
+            placeholder="Enter tenant name" />
+        </label>
+
+        <label>
+          Mobile Number
+          <input
+            type="tel"
+            [(ngModel)]="mobileNumber"
+            placeholder="Enter mobile number" />
+        </label>
+
+        <label>
+          PAN Card
+          <input
+            type="text"
+            [(ngModel)]="panCard"
+            placeholder="Optional" />
+        </label>
+
+        <label>
+          Monthly Rent
+          <input
+            type="number"
+            [(ngModel)]="monthlyRent"
+            min="1" />
+        </label>
+
+        <label>
+          Rent Due Day
+          <input
+            type="number"
+            [(ngModel)]="rentDueDay"
+            min="1"
+            max="31" />
+        </label>
+
+        <label>
+          Security Deposit
+          <input
+            type="number"
+            [(ngModel)]="securityDeposit"
+            min="0"
+            placeholder="Optional" />
+        </label>
+
+      </div>
+
+      <div class="form-actions">
 
         <button
           type="button"
-          class="back-button"
+          (click)="addTenant()">
+          Save Tenant
+        </button>
+
+        <button
+          type="button"
+          class="secondary"
           (click)="cancelTenant()">
-          ← Back to Shops
+          Cancel
         </button>
 
-        <h2>Add Tenant</h2>
+      </div>
 
-        <div class="form-grid">
+    </section>
 
-          <div class="field">
-            <label>Name</label>
-            <input
-              type="text"
-              [(ngModel)]="tenantName">
-          </div>
+  }
 
-          <div class="field">
-            <label>Mobile Number</label>
-            <input
-              type="tel"
-              [(ngModel)]="mobileNumber">
-          </div>
+  <!-- Rent Management -->
 
-          <div class="field">
-            <label>PAN Card</label>
-            <input
-              type="text"
-              [(ngModel)]="panCard">
-          </div>
+  @if (selectedTenantId && selectedRent()) {
 
-          <div class="field">
-            <label>Monthly Rent</label>
-            <input
-              type="number"
-              [(ngModel)]="monthlyRent">
-          </div>
+    <section class="card">
 
-          <div class="field">
-            <label>Rent Due Day</label>
-            <input
-              type="number"
-              [(ngModel)]="rentDueDay">
-          </div>
+      <div class="section-header">
 
-          <div class="field">
-            <label>Security Deposit</label>
-            <input
-              type="number"
-              [(ngModel)]="securityDeposit">
-          </div>
+        <div>
+          <h2>
+            {{ selectedRent()?.tenantName }}
+          </h2>
 
+          <p>
+            {{ selectedRent()?.month }}/{{ selectedRent()?.year }}
+          </p>
         </div>
-
-        <div class="form-actions">
-
-          <button
-            type="button"
-            class="secondary-button"
-            (click)="cancelTenant()">
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            class="primary-button"
-            (click)="addTenant()">
-            Save Tenant
-          </button>
-
-        </div>
-
-      </section>
-
-    }
-
-    @if (selectedTenantId) {
-
-      <section class="panel">
 
         <button
           type="button"
-          class="back-button"
+          class="secondary"
           (click)="closeTenant()">
-          ← Back to Shops
+          Close
         </button>
 
-        @if (selectedRent()) {
+      </div>
 
-          <div class="tenant-header">
+      <div class="rent-summary">
 
-            <div class="tenant-avatar">
-              {{ selectedRent()!.tenantName.charAt(0) }}
-            </div>
+        <div>
+          <span>Rent Due</span>
+          <strong>
+            ₹{{ selectedRent()?.amountDue }}
+          </strong>
+        </div>
 
-            <div>
-              <h1>{{ selectedRent()!.tenantName }}</h1>
-              <p>Tenant • Narera Complex</p>
-            </div>
+        <div>
+          <span>Paid</span>
+          <strong>
+            ₹{{ selectedRent()?.amountPaid }}
+          </strong>
+        </div>
+
+        <div>
+          <span>Remaining</span>
+          <strong>
+            ₹{{ selectedRent()?.remaining }}
+          </strong>
+        </div>
+
+        <div>
+          <span>Status</span>
+
+          @if (selectedRent()?.isSettled) {
+            <strong class="paid">
+              Paid
+            </strong>
+          } @else {
+            <strong class="pending">
+              Pending
+            </strong>
+          }
+
+        </div>
+
+      </div>
+
+      @if (!selectedRent()?.isSettled) {
+
+        <div class="payment-section">
+
+          <h3>Record Payment</h3>
+
+          <div class="payment-options">
+
+            <button
+              type="button"
+              [class.active]="paymentType === 'full'"
+              (click)="selectFullPayment()">
+              Paid Fully
+            </button>
+
+            <button
+              type="button"
+              [class.active]="paymentType === 'partial'"
+              (click)="selectPartialPayment()">
+              Paid Partially
+            </button>
 
           </div>
 
-          <div class="rent-overview">
+          @if (paymentType === 'partial') {
 
-            <div class="rent-card">
-              <span>Amount Due</span>
-              <strong>
-                ₹{{ selectedRent()!.amountDue }}
-              </strong>
-            </div>
-
-            <div class="rent-card">
-              <span>Amount Paid</span>
-              <strong>
-                ₹{{ selectedRent()!.amountPaid }}
-              </strong>
-            </div>
-
-            <div class="rent-card">
-              <span>Outstanding</span>
-              <strong>
-                ₹{{ selectedRent()!.remaining }}
-              </strong>
-            </div>
-
-            <div class="rent-card">
-              <span>Status</span>
-
-              @if (selectedRent()!.isSettled) {
-                <strong class="paid-text">
-                  PAID
-                </strong>
-              } @else if (selectedRent()!.amountPaid > 0) {
-                <strong class="partial-text">
-                  PARTIAL
-                </strong>
-              } @else {
-                <strong class="due-text">
-                  DUE
-                </strong>
-              }
-
-            </div>
-
-          </div>
-
-          @if (!selectedRent()!.isSettled) {
-
-            <div class="payment-panel">
-
-              <h2>Record Payment</h2>
-
-              <div class="payment-options">
-
-                <button
-                  type="button"
-                  class="payment-option"
-                  [class.selected]="paymentType === 'full'"
-                  (click)="selectFullPayment()">
-
-                  Paid Fully
-
-                </button>
-
-                <button
-                  type="button"
-                  class="payment-option"
-                  [class.selected]="paymentType === 'partial'"
-                  (click)="selectPartialPayment()">
-
-                  Paid Partially
-
-                </button>
-
-              </div>
-
-              <label>Amount Received</label>
+            <label>
+              Amount Received
 
               <input
                 type="number"
                 [(ngModel)]="paymentAmount"
-                [disabled]="paymentType === 'full'"
-                [max]="selectedRent()!.remaining">
+                min="1"
+                [max]="selectedRent()?.remaining ?? 0" />
 
-              <br><br>
-
-              <button
-                type="button"
-                class="primary-button"
-                (click)="markPayment()">
-                Record Payment
-              </button>
-
-            </div>
+            </label>
 
           } @else {
 
-            <div class="paid-banner">
-              <strong>✓ Rent Fully Paid</strong>
-              <p>This month's rent has been completely settled.</p>
-            </div>
-
-            <button
-              type="button"
-              class="whatsapp-button"
-              (click)="sendWhatsAppMessage()">
-              Send WhatsApp Message
-            </button>
+            <p>
+              Full payment:
+              <strong>
+                ₹{{ selectedRent()?.remaining }}
+              </strong>
+              will be recorded.
+            </p>
 
           }
 
-          <section class="history-section">
+          <button
+            type="button"
+            (click)="markPayment()">
+            Record Payment
+          </button>
 
-            <div class="history-header">
-              <div>
-                <h2>Payment History</h2>
-                <p>All payments recorded for this rent.</p>
-              </div>
+        </div>
 
-              <span class="history-count">
-                {{ payments().length }} payments
-              </span>
-            </div>
+      }
 
-            @if (payments().length > 0) {
+      <!-- Payment history -->
 
-              @for (payment of payments(); track payment.id) {
+      <div class="payment-history">
 
-                <div class="payment-row">
+        <h3>Payment History</h3>
 
-                  <div>
-                    <strong>
-                      {{ payment.paymentDate | date:'dd MMM yyyy' }}
-                    </strong>
-                    <small>
-                      {{ payment.paymentDate | date:'hh:mm a' }}
-                    </small>
-                  </div>
+        @if (payments().length === 0) {
 
-                  <div>
-                    {{ payment.paymentMode }}
-                  </div>
-
-                  <div>
-                    {{ payment.note || 'Rent payment' }}
-                  </div>
-
-                  <strong>
-                    ₹{{ payment.amount }}
-                  </strong>
-
-                </div>
-
-              }
-
-            } @else {
-
-              <div class="empty-history">
-                No payments recorded yet.
-              </div>
-
-            }
-
-          </section>
+          <p>No payments recorded yet.</p>
 
         } @else {
 
-          <p>Loading tenant...</p>
+          @for (payment of payments(); track payment.id) {
+
+            <div class="payment-row">
+
+              <div>
+                <strong>
+                  ₹{{ payment.amount }}
+                </strong>
+
+                <span>
+                  {{ payment.paymentMode }}
+                </span>
+              </div>
+
+              <div>
+                {{ payment.paymentDate | date:'dd MMM yyyy, hh:mm a' }}
+              </div>
+
+            </div>
+
+          }
 
         }
 
-      </section>
+      </div>
 
-    }
+    </section>
 
-  </main>
+  }
 
 </div>

@@ -42,6 +42,7 @@ export class App {
   private readonly tenantService = inject(TenantService);
 
   shops = signal<Shop[]>([]);
+  rents = signal<Rent[]>([]);
   selectedRent = signal<Rent | null>(null);
   payments = signal<Payment[]>([]);
 
@@ -61,39 +62,74 @@ export class App {
   message = '';
   errorMessage = '';
 
- constructor() {
-  this.loadShops();
-  this.ensureCurrentMonthRent();
-}
-ensureCurrentMonthRent(): void {
-  const now = new Date();
+  get occupiedCount(): number {
+    return this.shops().filter(shop => shop.isOccupied).length;
+  }
 
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  get vacantCount(): number {
+    return this.shops().filter(shop => !shop.isOccupied).length;
+  }
 
-  this.http.post(
-    `/api/rents/generate/${year}/${month}`,
-    {}
-  ).subscribe({
-    next: result => {
-      console.log(
-        `Monthly rent check completed for ${month}/${year}:`,
-        result
-      );
-    },
-    error: error => {
-      console.error(
-        'Unable to generate monthly rent:',
-        error
-      );
-    }
-  });
-}
+  get totalOutstanding(): number {
+    return this.rents().reduce(
+      (total, rent) => total + rent.remaining,
+      0
+    );
+  }
+
+  constructor() {
+    this.loadShops();
+    this.ensureCurrentMonthRent();
+  }
+
+  ensureCurrentMonthRent(): void {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    this.http.post(
+      `/api/rents/generate/${year}/${month}`,
+      {}
+    ).subscribe({
+      next: result => {
+        console.log(
+          `Monthly rent check completed for ${month}/${year}:`,
+          result
+        );
+
+        this.loadRents();
+      },
+      error: error => {
+        console.error(
+          'Unable to generate monthly rent:',
+          error
+        );
+      }
+    });
+  }
+
   loadShops(): void {
     this.shopService.getShops().subscribe({
-      next: shops => this.shops.set(shops),
+      next: shops => {
+        this.shops.set(shops);
+      },
       error: () => {
         this.errorMessage = 'Unable to load shops.';
+      }
+    });
+
+    this.loadRents();
+  }
+
+  loadRents(): void {
+    this.http.get<Rent[]>('/api/rents').subscribe({
+      next: rents => {
+        this.rents.set(rents);
+      },
+      error: () => {
+        this.errorMessage =
+          'Unable to load rent information.';
       }
     });
   }
@@ -119,9 +155,18 @@ ensureCurrentMonthRent(): void {
   loadRent(tenantId: number): void {
     this.http.get<Rent[]>('/api/rents').subscribe({
       next: rents => {
-        const rent = rents.find(
-          item => item.tenantId === tenantId
-        );
+        this.rents.set(rents);
+
+        const tenantRents = rents
+          .filter(item => item.tenantId === tenantId)
+          .sort((a, b) => {
+            const dateA = new Date(a.dueDate).getTime();
+            const dateB = new Date(b.dueDate).getTime();
+
+            return dateB - dateA;
+          });
+
+        const rent = tenantRents[0];
 
         if (!rent) {
           this.selectedRent.set(null);
@@ -143,13 +188,19 @@ ensureCurrentMonthRent(): void {
   }
 
   loadPayments(rentId: number): void {
-    console.log('Loading payments for rent:', rentId);
+    console.log(
+      'Loading payments for rent:',
+      rentId
+    );
 
     this.http.get<Payment[]>(
       `/api/payments/rent/${rentId}`
     ).subscribe({
       next: payments => {
-        console.log('Payments loaded:', payments);
+        console.log(
+          'Payments loaded:',
+          payments
+        );
 
         this.payments.set(payments);
       },
@@ -190,12 +241,18 @@ ensureCurrentMonthRent(): void {
       return;
     }
 
+    if (rent.isSettled || rent.remaining <= 0) {
+      this.errorMessage =
+        'This rent has already been fully paid.';
+      return;
+    }
+
     const amount =
       this.paymentType === 'full'
         ? rent.remaining
         : Number(this.paymentAmount);
 
-    if (amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       this.errorMessage =
         'Enter a valid payment amount.';
       return;
@@ -221,6 +278,7 @@ ensureCurrentMonthRent(): void {
           `Payment of ₹${payment.amount} recorded successfully.`;
 
         this.loadRent(rent.tenantId);
+        this.loadRents();
       },
       error: error => {
         this.errorMessage =
@@ -310,7 +368,9 @@ ensureCurrentMonthRent(): void {
 
         this.selectedShopId = null;
         this.resetTenantForm();
+
         this.loadShops();
+        this.loadRents();
       },
       error: error => {
         this.errorMessage =
