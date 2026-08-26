@@ -2,11 +2,11 @@ export interface Tenant {
   id: number;
   name: string;
   mobileNumber: string;
-  panCard?: string;
+  panCard?: string | null;
   monthlyRent: number;
   rentDueDay: number;
-  securityDeposit?: number;
-  leaseStartDate?: string;
-  leaseEndDate?: string;
+  securityDeposit?: number | null;
+  leaseStartDate?: string | null;
+  leaseEndDate?: string | null;
   shopId: number;
 }

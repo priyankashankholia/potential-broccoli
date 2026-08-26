@@ -27,13 +27,17 @@ public class ShopsController : ControllerBase
                 s.Name,
                 IsOccupied = s.Tenant != null,
                 Tenant = s.Tenant == null
-                    ? null
-                    : new
-                    {
-                        s.Tenant.Id,
-                        s.Tenant.Name,
-                        s.Tenant.MobileNumber
-                    }
+    ? null
+    : new
+    {
+        s.Tenant.Id,
+        s.Tenant.Name,
+        s.Tenant.MobileNumber,
+        s.Tenant.PanCard,
+        s.Tenant.MonthlyRent,
+        s.Tenant.RentDueDay,
+        s.Tenant.SecurityDeposit
+    }
             })
             .OrderBy(s => s.Id)
             .ToListAsync();
@@ -53,13 +57,17 @@ public class ShopsController : ControllerBase
                 s.Name,
                 IsOccupied = s.Tenant != null,
                 Tenant = s.Tenant == null
-                    ? null
-                    : new
-                    {
-                        s.Tenant.Id,
-                        s.Tenant.Name,
-                        s.Tenant.MobileNumber
-                    }
+    ? null
+    : new
+    {
+        s.Tenant.Id,
+        s.Tenant.Name,
+        s.Tenant.MobileNumber,
+        s.Tenant.PanCard,
+        s.Tenant.MonthlyRent,
+        s.Tenant.RentDueDay,
+        s.Tenant.SecurityDeposit
+    }
             })
             .FirstOrDefaultAsync();
 
