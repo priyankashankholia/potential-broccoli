@@ -6,13 +6,21 @@ public class Notification
 
     public int TenantId { get; set; }
 
-    public Tenant Tenant { get; set; } = null!;
+    public Tenant? Tenant { get; set; }
 
-    public string Title { get; set; } = string.Empty;
+    public int? RentId { get; set; }
+
+    public Rent? Rent { get; set; }
+
+    public string Type { get; set; } = string.Empty;
+
+    public string Channel { get; set; } = string.Empty;
 
     public string Message { get; set; } = string.Empty;
 
+    public string Status { get; set; } = "Pending";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public bool IsRead { get; set; }
+    public DateTime? SentAt { get; set; }
 }

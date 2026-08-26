@@ -43,9 +43,20 @@ public class RentManagerDbContext : DbContext
         modelBuilder.Entity<Payment>()
             .Property(p => p.Amount)
             .HasPrecision(18, 2);
+        modelBuilder.Entity<Notification>()
+    .HasOne(n => n.Tenant)
+    .WithMany(t => t.Notifications)
+    .HasForeignKey(n => n.TenantId)
+    .OnDelete(DeleteBehavior.Cascade);
 
+    modelBuilder.Entity<Notification>()
+    .HasOne(n => n.Rent)
+    .WithMany()
+    .HasForeignKey(n => n.RentId)
+    .OnDelete(DeleteBehavior.SetNull);
         modelBuilder.Entity<Rent>()
             .HasIndex(r => new { r.TenantId, r.Year, r.Month })
             .IsUnique();
+            
     }
 }
