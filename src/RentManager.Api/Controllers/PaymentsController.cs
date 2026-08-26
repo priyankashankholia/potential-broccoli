@@ -41,6 +41,7 @@ public class PaymentsController : ControllerBase
         [FromBody] CreatePaymentRequest request)
     {
         var rent = await _db.Rents
+            .Include(r => r.Tenant)
             .FirstOrDefaultAsync(r => r.Id == request.RentId);
 
         if (rent is null)
@@ -48,22 +49,30 @@ public class PaymentsController : ControllerBase
             return BadRequest("Rent not found.");
         }
 
+        if (rent.Tenant is null)
+        {
+            return BadRequest("Tenant not found for this rent.");
+        }
+
         if (rent.IsSettled)
         {
-            return BadRequest("This rent is already fully paid.");
+            return BadRequest(
+                "This rent is already fully paid.");
         }
 
         if (request.Amount <= 0)
         {
-            return BadRequest("Payment amount must be greater than zero.");
+            return BadRequest(
+                "Payment amount must be greater than zero.");
         }
 
-        var remaining = rent.AmountDue - rent.AmountPaid;
+        var remainingBeforePayment =
+            rent.AmountDue - rent.AmountPaid;
 
-        if (request.Amount > remaining)
+        if (request.Amount > remainingBeforePayment)
         {
             return BadRequest(
-                $"Payment cannot exceed the remaining balance of {remaining}.");
+                $"Payment cannot exceed the remaining balance of {remainingBeforePayment}.");
         }
 
         var payment = new Payment
@@ -76,9 +85,39 @@ public class PaymentsController : ControllerBase
         };
 
         rent.AmountPaid += request.Amount;
-        rent.IsSettled = rent.AmountPaid >= rent.AmountDue;
+
+        rent.IsSettled =
+            rent.AmountPaid >= rent.AmountDue;
+
+        var remainingAfterPayment =
+            rent.AmountDue - rent.AmountPaid;
 
         _db.Payments.Add(payment);
+
+        /*
+         * Create notification record.
+         *
+         * We are NOT sending WhatsApp/SMS yet.
+         * This only records that a notification
+         * needs to be sent.
+         */
+
+        var notificationMessage = rent.IsSettled
+            ? $"Rent payment received. Your rent for {rent.Month}/{rent.Year} is fully paid. Total paid: ₹{rent.AmountPaid}. Thank you."
+            : $"Rent payment received. ₹{request.Amount} received for {rent.Month}/{rent.Year}. Remaining balance: ₹{remainingAfterPayment}.";
+
+        var notification = new Notification
+        {
+            TenantId = rent.TenantId,
+            RentId = rent.Id,
+            Type = "PaymentReceived",
+            Channel = "WhatsApp",
+            Message = notificationMessage,
+            Status = "Pending",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Notifications.Add(notification);
 
         await _db.SaveChangesAsync();
 
@@ -89,10 +128,21 @@ public class PaymentsController : ControllerBase
             payment.Amount,
             payment.PaymentDate,
             payment.PaymentMode,
+
             rent.AmountDue,
             rent.AmountPaid,
-            Remaining = rent.AmountDue - rent.AmountPaid,
-            rent.IsSettled
+
+            Remaining = remainingAfterPayment,
+
+            rent.IsSettled,
+
+            Notification = new
+            {
+                notification.Id,
+                notification.Type,
+                notification.Channel,
+                notification.Status
+            }
         });
     }
 }
