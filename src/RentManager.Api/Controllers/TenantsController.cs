@@ -1,27 +1,38 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RentManager.Api.Common;
 using RentManager.Api.Data;
 using RentManager.Api.Models;
+using RentManager.Api.Services;
 
 namespace RentManager.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/tenants")]
 public class TenantsController : ControllerBase
 {
     private readonly RentManagerDbContext _db;
+    private readonly RentGenerationService _rentGenerator;
+    private readonly RentLedgerService _ledger;
 
-    public TenantsController(RentManagerDbContext db)
+    public TenantsController(
+        RentManagerDbContext db,
+        RentGenerationService rentGenerator,
+        RentLedgerService ledger)
     {
         _db = db;
+        _rentGenerator = rentGenerator;
+        _ledger = ledger;
     }
 
-    // GET: api/tenants
     [HttpGet]
     public async Task<IActionResult> GetTenants()
     {
         var tenants = await _db.Tenants
             .Include(t => t.Shop)
+            .Where(t => t.IsActive)
             .OrderBy(t => t.Name)
             .Select(t => new
             {
@@ -32,22 +43,16 @@ public class TenantsController : ControllerBase
                 t.MonthlyRent,
                 t.RentDueDay,
                 t.SecurityDeposit,
-
-                Shop = t.Shop == null
-                    ? null
-                    : new
-                    {
-                        t.Shop.Id,
-                        t.Shop.Name
-                    }
+                t.RentStartYear,
+                t.RentStartMonth,
+                t.IsActive,
+                Shop = t.Shop == null ? null : new { t.Shop.Id, t.Shop.Name }
             })
             .ToListAsync();
 
         return Ok(tenants);
     }
 
-
-    // GET: api/tenants/5
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetTenant(int id)
     {
@@ -63,270 +68,247 @@ public class TenantsController : ControllerBase
                 t.MonthlyRent,
                 t.RentDueDay,
                 t.SecurityDeposit,
-
-                Shop = t.Shop == null
-                    ? null
-                    : new
-                    {
-                        t.Shop.Id,
-                        t.Shop.Name
-                    }
+                t.RentStartYear,
+                t.RentStartMonth,
+                t.IsActive,
+                Shop = t.Shop == null ? null : new { t.Shop.Id, t.Shop.Name }
             })
             .FirstOrDefaultAsync();
 
-        if (tenant == null)
+        if (tenant is null)
         {
-            return NotFound();
+            return ApiResults.Missing("Tenant not found.");
         }
 
         return Ok(tenant);
     }
 
-
-    // POST: api/tenants
-    [HttpPost]
-    public async Task<IActionResult> CreateTenant(
-        [FromBody] CreateTenantRequest request)
+    // Feeds the two radio buttons on the Add Tenant form.
+    //
+    // The first option is the first month whose due date has not already
+    // passed, not simply the current calendar month. On 27 August with a
+    // due day of 1 that is September, because 1 August is behind us.
+    [HttpGet("first-rent-options")]
+    public IActionResult GetFirstRentOptions([FromQuery] int rentDueDay = 1)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (rentDueDay < 1 || rentDueDay > 31)
         {
-            return BadRequest(
-                "Tenant name is required.");
+            return ApiResults.Invalid("Rent due day must be between 1 and 31.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.MobileNumber))
-        {
-            return BadRequest(
-                "Mobile number is required.");
-        }
+        var today = IndiaClock.Today();
 
-        if (request.MonthlyRent <= 0)
-        {
-            return BadRequest(
-                "Monthly rent must be greater than zero.");
-        }
+        var next = IndiaClock.AddMonths(today.Year, today.Month, 1);
 
-        if (request.RentDueDay < 1 ||
-            request.RentDueDay > 31)
+        var normalDue = IndiaClock.DueDateFor(today.Year, today.Month, rentDueDay);
+        var backdated = normalDue < today;
+
+        return Ok(new
         {
-            return BadRequest(
-                "Rent due day must be between 1 and 31.");
+            Current = new
+            {
+                Year = today.Year,
+                Month = today.Month,
+                Label = IndiaClock.MonthLabel(today.Year, today.Month),
+                DueDate = backdated ? today : normalDue,
+                IsBackdated = backdated
+            },
+            Next = Describe(next.Year, next.Month, rentDueDay)
+        });
+
+        static object Describe(int year, int month, int dueDay)
+        {
+            return new
+            {
+                Year = year,
+                Month = month,
+                Label = IndiaClock.MonthLabel(year, month),
+                DueDate = IndiaClock.DueDateFor(year, month, dueDay)
+            };
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateTenant([FromBody] CreateTenantRequest request)
+    {
+        var validation = Validate(
+            request.Name,
+            request.MobileNumber,
+            request.MonthlyRent,
+            request.RentDueDay);
+
+        if (validation is not null)
+        {
+            return validation;
         }
 
         var shop = await _db.Shops
             .Include(s => s.Tenant)
-            .FirstOrDefaultAsync(
-                s => s.Id == request.ShopId);
+            .FirstOrDefaultAsync(s => s.Id == request.ShopId && s.IsActive);
 
-        if (shop == null)
+        if (shop is null)
         {
-            return BadRequest(
-                "Shop not found.");
+            return ApiResults.Invalid("Shop not found.");
         }
 
-        if (shop.Tenant != null)
+        if (shop.Tenant is { IsActive: true })
         {
-            return BadRequest(
-                "This shop already has a tenant.");
+            return ApiResults.Blocked(
+                $"{shop.Name} already has {shop.Tenant.Name} assigned.");
+        }
+
+        var today = IndiaClock.Today();
+
+        // "Current" now means the actual current calendar month, even when
+        // its due day has gone by. That month's due date becomes today, so
+        // the landlord can collect it straight away rather than seeing it
+        // appear already overdue.
+        (int Year, int Month) start;
+        DateOnly? firstDue = null;
+
+        if (string.Equals(request.FirstRentMonth, "Next", StringComparison.OrdinalIgnoreCase))
+        {
+            start = IndiaClock.AddMonths(today.Year, today.Month, 1);
+        }
+        else
+        {
+            start = (today.Year, today.Month);
+
+            var normalDue = IndiaClock.DueDateFor(
+                today.Year,
+                today.Month,
+                request.RentDueDay);
+
+            if (normalDue < today)
+            {
+                firstDue = today;
+            }
         }
 
         var tenant = new Tenant
         {
             Name = request.Name.Trim(),
-
-            MobileNumber =
-                request.MobileNumber.Trim(),
-
-            PanCard =
-                string.IsNullOrWhiteSpace(request.PanCard)
-                    ? null
-                    : request.PanCard.Trim(),
-
-            MonthlyRent =
-                request.MonthlyRent,
-
-            RentDueDay =
-                request.RentDueDay,
-
-            SecurityDeposit =
-                request.SecurityDeposit,
-
-            ShopId =
-                request.ShopId
+            MobileNumber = request.MobileNumber.Trim(),
+            PanCard = string.IsNullOrWhiteSpace(request.PanCard)
+                ? null
+                : request.PanCard.Trim(),
+            MonthlyRent = request.MonthlyRent,
+            RentDueDay = request.RentDueDay,
+            SecurityDeposit = request.SecurityDeposit,
+            RentStartYear = start.Year,
+            RentStartMonth = start.Month,
+            FirstDueDate = firstDue,
+            ShopId = request.ShopId,
+            IsActive = true
         };
 
         _db.Tenants.Add(tenant);
 
         await _db.SaveChangesAsync();
 
+        // Only creates something if the start month is the current month
+        // or earlier. A future start month is picked up automatically when
+        // that month arrives.
+        await _rentGenerator.EnsureRentsUpToCurrentMonthAsync(tenant.Id);
 
-        // Automatically create current month's rent.
-
-        var now = DateTime.UtcNow;
-
-        var year = now.Year;
-        var month = now.Month;
-
-        var dueDay = Math.Min(
-            tenant.RentDueDay,
-            DateTime.DaysInMonth(
-                year,
-                month));
-
-        var dueDate = new DateTime(
-            year,
-            month,
-            dueDay,
-            0,
-            0,
-            0,
-            DateTimeKind.Utc);
-
-        var rent = new Rent
+        return Created($"/api/tenants/{tenant.Id}", new
         {
-            TenantId = tenant.Id,
-
-            Year = year,
-
-            Month = month,
-
-            AmountDue =
-                tenant.MonthlyRent,
-
-            AmountPaid = 0,
-
-            DueDate = dueDate,
-
-            IsSettled = false
-        };
-
-        _db.Rents.Add(rent);
-
-        await _db.SaveChangesAsync();
-
-        return Created(
-            $"/api/tenants/{tenant.Id}",
-            new
-            {
-                Tenant = new
-                {
-                    tenant.Id,
-                    tenant.Name,
-                    tenant.MobileNumber,
-                    tenant.MonthlyRent,
-                    tenant.RentDueDay,
-                    tenant.ShopId
-                },
-
-                Rent = new
-                {
-                    rent.Id,
-                    rent.Year,
-                    rent.Month,
-                    rent.AmountDue,
-                    rent.AmountPaid,
-                    Remaining =
-                        rent.AmountDue -
-                        rent.AmountPaid,
-                    rent.DueDate,
-                    rent.IsSettled
-                }
-            });
+            tenant.Id,
+            tenant.Name,
+            tenant.MobileNumber,
+            tenant.MonthlyRent,
+            tenant.RentDueDay,
+            tenant.ShopId,
+            FirstRentMonth = IndiaClock.MonthLabel(start.Year, start.Month),
+            FirstDueDate = firstDue
+                ?? IndiaClock.DueDateFor(start.Year, start.Month, tenant.RentDueDay)
+        });
     }
 
-
-    // PUT: api/tenants/5
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateTenant(
         int id,
         [FromBody] UpdateTenantRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest(
-                "Tenant name is required.");
-        }
+        var validation = Validate(
+            request.Name,
+            request.MobileNumber,
+            request.MonthlyRent,
+            request.RentDueDay);
 
-        if (string.IsNullOrWhiteSpace(
-                request.MobileNumber))
+        if (validation is not null)
         {
-            return BadRequest(
-                "Mobile number is required.");
-        }
-
-        if (request.MonthlyRent <= 0)
-        {
-            return BadRequest(
-                "Monthly rent must be greater than zero.");
-        }
-
-        if (request.RentDueDay < 1 ||
-            request.RentDueDay > 31)
-        {
-            return BadRequest(
-                "Rent due day must be between 1 and 31.");
+            return validation;
         }
 
         var tenant = await _db.Tenants
-            .FirstOrDefaultAsync(
-                t => t.Id == id);
+            .FirstOrDefaultAsync(t => t.Id == id && t.IsActive);
 
-        if (tenant == null)
+        if (tenant is null)
         {
-            return NotFound(
-                "Tenant not found.");
+            return ApiResults.Missing("Tenant not found.");
         }
-
-
-        // Change shop if required.
 
         if (tenant.ShopId != request.ShopId)
         {
             var shop = await _db.Shops
                 .Include(s => s.Tenant)
-                .FirstOrDefaultAsync(
-                    s => s.Id == request.ShopId);
+                .FirstOrDefaultAsync(s => s.Id == request.ShopId && s.IsActive);
 
-            if (shop == null)
+            if (shop is null)
             {
-                return BadRequest(
-                    "Shop not found.");
+                return ApiResults.Invalid("Shop not found.");
             }
 
-            if (shop.Tenant != null &&
-                shop.Tenant.Id != tenant.Id)
+            if (shop.Tenant is { IsActive: true } other && other.Id != tenant.Id)
             {
-                return BadRequest(
-                    "This shop already has a tenant.");
+                return ApiResults.Blocked(
+                    $"{shop.Name} already has {other.Name} assigned.");
             }
 
-            tenant.ShopId =
-                request.ShopId;
+            tenant.ShopId = request.ShopId;
         }
 
+        var today = IndiaClock.Today();
 
-        tenant.Name =
-            request.Name.Trim();
+        var currentRent = await _db.Rents
+            .FirstOrDefaultAsync(r =>
+                r.TenantId == tenant.Id &&
+                r.Year == today.Year &&
+                r.Month == today.Month);
 
-        tenant.MobileNumber =
-            request.MobileNumber.Trim();
+        var dueDayChanged = tenant.RentDueDay != request.RentDueDay;
 
-        tenant.PanCard =
-            string.IsNullOrWhiteSpace(
-                request.PanCard)
-                ? null
-                : request.PanCard.Trim();
+        // Current month fully paid: the new day starts next month.
+        // Current month unpaid or partly paid: it moves right away.
+        var dueDayAppliedNow =
+            dueDayChanged && currentRent is not null && !currentRent.IsSettled;
 
-        tenant.MonthlyRent =
-            request.MonthlyRent;
+        if (dueDayAppliedNow)
+        {
+            currentRent!.DueDate = IndiaClock.DueDateFor(
+                currentRent.Year,
+                currentRent.Month,
+                request.RentDueDay);
+        }
 
-        tenant.RentDueDay =
-            request.RentDueDay;
+        // The new amount is stored on the tenant and picked up by the next
+        // generated month. Existing months keep what they were generated
+        // with, so a rent change never rewrites an in-flight month.
+        var rentChanged = tenant.MonthlyRent != request.MonthlyRent;
 
-        tenant.SecurityDeposit =
-            request.SecurityDeposit;
+        tenant.Name = request.Name.Trim();
+        tenant.MobileNumber = request.MobileNumber.Trim();
+        tenant.PanCard = string.IsNullOrWhiteSpace(request.PanCard)
+            ? null
+            : request.PanCard.Trim();
+        tenant.MonthlyRent = request.MonthlyRent;
+        tenant.RentDueDay = request.RentDueDay;
+        tenant.SecurityDeposit = request.SecurityDeposit;
 
         await _db.SaveChangesAsync();
+
+        var nextMonth = IndiaClock.AddMonths(today.Year, today.Month, 1);
 
         return Ok(new
         {
@@ -337,62 +319,83 @@ public class TenantsController : ControllerBase
             tenant.MonthlyRent,
             tenant.RentDueDay,
             tenant.SecurityDeposit,
-            tenant.ShopId
+            tenant.ShopId,
+            tenant.IsActive,
+            RentChangeEffectiveFrom = rentChanged
+                ? IndiaClock.MonthLabel(nextMonth.Year, nextMonth.Month)
+                : null,
+            DueDayAppliedToCurrentMonth = dueDayAppliedNow
         });
     }
 
-
-    // DELETE: api/tenants/5
+    // Deactivated, never deleted, so rent and payment history survives.
+    // Blocked while any collectable rent still has a balance.
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteTenant(
-        int id)
+    public async Task<IActionResult> DeleteTenant(int id)
     {
-        var tenant = await _db.Tenants
-            .FirstOrDefaultAsync(
-                t => t.Id == id);
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == id);
 
-        if (tenant == null)
+        if (tenant is null)
         {
-            return NotFound(
-                "Tenant not found.");
+            return ApiResults.Missing("Tenant not found.");
         }
 
-
-        // Do not allow deletion if
-        // any payment has already been recorded.
-
-        var hasPayments = await _db.Rents
-            .Where(r => r.TenantId == id)
-            .AnyAsync(
-                r => r.AmountPaid > 0);
-
-        if (hasPayments)
+        if (!tenant.IsActive)
         {
-            return BadRequest(
-                "Cannot remove a tenant with recorded payments.");
+            return ApiResults.Invalid("This tenant has already been removed.");
         }
 
+        var outstanding = await _ledger.GetTotalPayableAsync(id);
 
-        // Remove generated rent records.
+        if (outstanding > 0)
+        {
+            return ApiResults.Blocked(
+                $"{tenant.Name} cannot be removed yet. Unpaid dues of " +
+                $"Rs {outstanding:N0} are still pending. Please clear the dues " +
+                "first, all rent history will be preserved.");
+        }
 
-        var rents = await _db.Rents
-            .Where(r => r.TenantId == id)
-            .ToListAsync();
+        tenant.IsActive = false;
+        tenant.ShopId = null;
 
-        _db.Rents.RemoveRange(rents);
-
-        _db.Tenants.Remove(tenant);
+        // Records when they left, which is what stops rent generating for
+        // months after the shop was handed back.
+        tenant.LeaseEndDate = IndiaClock.Today().ToDateTime(TimeOnly.MinValue);
 
         await _db.SaveChangesAsync();
 
         return NoContent();
     }
+
+    private static IActionResult? Validate(
+        string name,
+        string mobileNumber,
+        decimal monthlyRent,
+        int rentDueDay)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return ApiResults.Invalid("Tenant name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(mobileNumber))
+        {
+            return ApiResults.Invalid("Mobile number is required.");
+        }
+
+        if (monthlyRent <= 0)
+        {
+            return ApiResults.Invalid("Monthly rent must be greater than zero.");
+        }
+
+        if (rentDueDay < 1 || rentDueDay > 31)
+        {
+            return ApiResults.Invalid("Rent due day must be between 1 and 31.");
+        }
+
+        return null;
+    }
 }
-
-
-// ==========================================
-// REQUEST MODELS
-// ==========================================
 
 public class CreateTenantRequest
 {
@@ -409,8 +412,10 @@ public class CreateTenantRequest
     public decimal? SecurityDeposit { get; set; }
 
     public int ShopId { get; set; }
-}
 
+    // "Current" or "Next", relative to the first applicable month.
+    public string FirstRentMonth { get; set; } = "Current";
+}
 
 public class UpdateTenantRequest
 {

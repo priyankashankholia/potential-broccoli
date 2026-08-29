@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RentManager.Api.Services;
 
 namespace RentManager.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/reminders")]
 public class ReminderController : ControllerBase

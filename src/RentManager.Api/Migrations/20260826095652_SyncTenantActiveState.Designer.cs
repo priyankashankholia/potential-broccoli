@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RentManager.Api.Data;
@@ -11,9 +12,11 @@ using RentManager.Api.Data;
 namespace RentManager.Api.Migrations
 {
     [DbContext(typeof(RentManagerDbContext))]
-    partial class RentManagerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826095652_SyncTenantActiveState")]
+    partial class SyncTenantActiveState
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,40 +24,6 @@ namespace RentManager.Api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("RentManager.Api.Models.AppUser", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LastLoginAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Username")
-                        .IsUnique();
-
-                    b.ToTable("Users");
-                });
 
             modelBuilder.Entity("RentManager.Api.Models.Notification", b =>
                 {
@@ -119,8 +88,8 @@ namespace RentManager.Api.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("text");
 
-                    b.Property<DateOnly>("PaymentDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PaymentMode")
                         .IsRequired()
@@ -152,8 +121,8 @@ namespace RentManager.Api.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<DateOnly>("DueDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsSettled")
                         .HasColumnType("boolean");
@@ -183,7 +152,7 @@ namespace RentManager.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("IsActive")
+                    b.Property<bool>("IsOccupied")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
@@ -191,10 +160,6 @@ namespace RentManager.Api.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique()
-                        .HasFilter("\"IsActive\" = true");
 
                     b.ToTable("Shops");
                 });
@@ -206,9 +171,6 @@ namespace RentManager.Api.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateOnly?>("FirstDueDate")
-                        .HasColumnType("date");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -235,12 +197,6 @@ namespace RentManager.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("RentDueDay")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RentStartMonth")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RentStartYear")
                         .HasColumnType("integer");
 
                     b.Property<decimal?>("SecurityDeposit")

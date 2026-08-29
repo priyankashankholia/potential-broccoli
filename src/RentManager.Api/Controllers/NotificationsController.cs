@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentManager.Api.Data;
 
 namespace RentManager.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/notifications")]
 public class NotificationsController : ControllerBase

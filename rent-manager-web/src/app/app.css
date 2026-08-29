@@ -531,6 +531,64 @@ input:focus {
   color: #dc2626 !important;
 }
 
+
+.rent-history-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #344054;
+  margin-bottom: 10px;
+}
+
+.rent-history-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rent-history-main strong {
+  color: #101828;
+  font-size: 15px;
+}
+
+.rent-history-row span {
+  color: #667085;
+  font-size: 12px;
+}
+
+.rent-history-row strong {
+  color: #101828;
+  font-size: 14px;
+}
+
+.rent-history-row strong.outstanding {
+  color: #dc2626;
+}
+
+.rent-payment-history {
+  grid-column: 1 / -1;
+  border-top: 1px solid #f2f4f7;
+  padding-top: 10px;
+}
+
+.rent-payment-history small {
+  color: #98a2b3;
+}
+
+.rent-payment-entry {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
 /* =========================
    PAYMENT
 ========================= */
@@ -737,6 +795,15 @@ input:focus {
     grid-template-columns: 1fr 1fr;
   }
 
+
+  .rent-history-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .rent-payment-history {
+    grid-column: 1 / -1;
+  }
+
   .payment-options {
     flex-direction: column;
   }
@@ -748,5 +815,565 @@ input:focus {
   .payment-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+/* =========================
+   DASHBOARD DATE / RENT STATUS
+========================= */
+.dashboard-date {
+  margin-top: 3px !important;
+  color: #344054 !important;
+  font-weight: 700;
+}
+
+.shop-rent-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: -4px 0 18px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #eaecf0;
+  border-radius: 10px;
+}
+
+.shop-rent-status span {
+  display: block;
+  color: #667085;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.shop-rent-status strong {
+  color: #101828;
+  font-size: 13px;
+}
+
+.shop-rent-status strong.outstanding {
+  color: #dc2626;
+}
+
+.shop-rent-status strong.pending,
+.shop-rent-status strong.partial {
+  color: #b54708;
+}
+
+.shop-rent-status strong.paid {
+  color: #067647;
+}
+
+.shop-rent-status strong.upcoming {
+  color: #475467;
+}
+
+/* =========================
+   ERROR POPUP
+========================= */
+
+.error-popup-overlay {
+  z-index: 2000;
+}
+
+.error-popup-card {
+  width: min(460px, 100%);
+  text-align: center;
+  padding: 28px;
+}
+
+.error-popup-icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  color: #b42318;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.error-popup-content h3 {
+  margin: 0;
+  color: #101828;
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.error-popup-content p {
+  margin: 10px 0 0;
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.error-popup-actions {
+  justify-content: center;
+  margin-top: 22px;
+}
+
+
+/* =========================
+   MODALS
+========================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(16, 24, 40, 0.55);
+  overflow-y: auto;
+}
+
+.modal-card {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  margin: 0;
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(16, 24, 40, 0.22);
+}
+
+.rent-modal {
+  width: min(1050px, 100%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #101828;
+  font-size: 20px;
+}
+
+.modal-header p {
+  margin: 5px 0 0;
+  color: #667085;
+  font-size: 13px;
+}
+
+.modal-close {
+  min-width: 38px;
+  padding: 8px 12px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.payment-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.small-button {
+  padding: 6px 9px;
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .modal-card {
+    max-height: calc(100vh - 24px);
+    padding: 17px;
+    border-radius: 13px;
+  }
+
+  .shop-rent-status {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-history-actions {
+    margin-left: 0;
+  }
+}
+
+/* ---- Login ------------------------------------------------------- */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f1f5f9;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-card h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.login-subtitle {
+  margin: -8px 0 8px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.login-card input {
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.login-card input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.login-button {
+  margin-top: 4px;
+  padding: 12px;
+  font-size: 1rem;
+}
+
+/* ---- Header / logout --------------------------------------------- */
+
+.header-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* ---- Rent status colours ----------------------------------------- */
+
+.upcoming {
+  color: #2563eb;
+}
+
+.outstanding {
+  color: #dc2626;
+}
+
+.due-soon {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.carry-forward-note {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #b45309;
+}
+
+.next-expected {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+/* ---- First rent choice ------------------------------------------- */
+
+.first-rent-choice {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.first-rent-choice h4 {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.radio-option input[type='radio'] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.radio-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radio-option strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.radio-option small {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.form-note {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #f1f5f9;
+  border-left: 3px solid #94a3b8;
+  border-radius: 6px;
+}
+
+.form-note p {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.form-note p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Manage rent -------------------------------------------------- */
+
+.rent-summary-main strong {
+  font-size: 1.35rem;
+}
+
+.rent-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.rent-status-line > span:first-child {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-weight: 700;
+}
+
+.payment-total {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.payment-total > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.payment-total span {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.payment-total strong {
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.payment-total-main strong {
+  font-size: 1.2rem;
+  color: #dc2626;
+}
+
+.payment-meta {
+  margin-top: 14px;
+}
+
+.whatsapp-button {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.payment-allocation-note {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+}
+
+/* ---- Rent history ------------------------------------------------- */
+
+.rent-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rent-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.rent-history-status {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rent-history-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.rent-history-figures > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rent-history-figures span {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.rent-history-figures strong {
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.payment-history-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+}
+
+.payment-history-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.payment-mode {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.no-payment-history {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* ---- Phone layout corrections ------------------------------------ */
+
+@media (max-width: 640px) {
+
+  /* The account row was sitting inside the wrapped subtitle. */
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .header-account {
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid #eaecf0;
+  }
+
+  .header p {
+    max-width: 34ch;
+  }
+
+  /* Three columns forced "September 2026 rent" onto two lines and left
+     the boxes at different heights. Two columns fits the labels. */
+  .shop-financials {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .financial-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 62px;
+  }
+
+  /* The rent figure matters more than its label, so let it lead. */
+  .financial-item strong {
+    font-size: 16px;
+  }
+
+  /* Stacking all three rows made a nearly empty card half a screen tall. */
+  .shop-rent-status {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 12px;
+  }
+
+  .shop-rent-status > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  /* Four buttons wrapped 2 + 2 at uneven widths. Make the pairs even. */
+  .shop-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shop-actions button {
+    width: 100%;
+  }
+
+  /* Hover lift does nothing on touch and leaves cards stuck highlighted. */
+  .shop-card:hover {
+    transform: none;
   }
 }

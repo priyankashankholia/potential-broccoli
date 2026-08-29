@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RentManager.Api.Common;
 using RentManager.Api.Data;
 using RentManager.Api.Models;
 
@@ -16,30 +17,25 @@ public class RentReminderService
     public async Task<int> GenerateRemindersAsync(
         CancellationToken cancellationToken = default)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = IndiaClock.Today();
 
         var rents = await _db.Rents
             .Include(r => r.Tenant)
-            .Where(r =>
-                !r.IsSettled &&
-                r.Tenant != null)
+            .Where(r => !r.IsSettled && r.Tenant.IsActive)
             .ToListAsync(cancellationToken);
 
         var created = 0;
 
         foreach (var rent in rents)
         {
-            var daysFromDueDate =
-                (rent.DueDate.Date - today).Days;
+            var daysFromDueDate = IndiaClock.DaysBetween(today, rent.DueDate);
 
             string? reminderType = daysFromDueDate switch
             {
+                // Three moments, not seven. A landlord who gets a push
+                // every day for the same tenant stops reading them.
                 3 => "RentDue3Days",
-                2 => "RentDue2Days",
-                1 => "RentDue1Day",
                 0 => "RentDueToday",
-                -1 => "RentOverdue1Day",
-                -2 => "RentOverdue2Days",
                 -7 => "RentOverdue7Days",
                 _ => null
             };
@@ -51,9 +47,7 @@ public class RentReminderService
 
             var alreadyCreated = await _db.Notifications
                 .AnyAsync(
-                    n =>
-                        n.RentId == rent.Id &&
-                        n.Type == reminderType,
+                    n => n.RentId == rent.Id && n.Type == reminderType,
                     cancellationToken);
 
             if (alreadyCreated)
@@ -61,33 +55,21 @@ public class RentReminderService
                 continue;
             }
 
-            var remaining =
-                rent.AmountDue - rent.AmountPaid;
+            var remaining = Math.Max(0m, rent.AmountDue - rent.AmountPaid);
+            var dueDateText = rent.DueDate.ToString("dd MMM yyyy");
+            var overdueDays = Math.Abs(daysFromDueDate);
 
-            string message;
-
-            if (daysFromDueDate > 0)
+            var message = daysFromDueDate switch
             {
-                message =
-                    $"Rent reminder: ₹{remaining} is due on {rent.DueDate:dd MMM yyyy}. Please make the payment by the due date.";
-            }
-            else if (daysFromDueDate == 0)
-            {
-                message =
-                    $"Rent reminder: ₹{remaining} is due today.";
-            }
-            else
-            {
-                var overdueDays =
-                    Math.Abs(daysFromDueDate);
+                > 0 => $"Rent reminder: Rs {remaining:N0} is due on {dueDateText}. " +
+                       "Please make the payment by the due date.",
+                0 => $"Rent reminder: Rs {remaining:N0} is due today.",
+                _ => $"Rent overdue: Rs {remaining:N0} is outstanding. " +
+                     $"Due date was {dueDateText}. Overdue by {overdueDays} " +
+                     $"day{(overdueDays == 1 ? "" : "s")}."
+            };
 
-                message =
-                    $"Rent overdue: ₹{remaining} is outstanding. " +
-                    $"Due date was {rent.DueDate:dd MMM yyyy}. " +
-                    $"Overdue by {overdueDays} day{(overdueDays == 1 ? "" : "s")}.";
-            }
-
-            var notification = new Notification
+            _db.Notifications.Add(new Notification
             {
                 TenantId = rent.TenantId,
                 RentId = rent.Id,
@@ -96,9 +78,7 @@ public class RentReminderService
                 Message = message,
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow
-            };
-
-            _db.Notifications.Add(notification);
+            });
 
             created++;
         }

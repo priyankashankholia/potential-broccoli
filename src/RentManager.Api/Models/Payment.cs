@@ -10,11 +10,13 @@ public class Payment
 
     public decimal Amount { get; set; }
 
-    public DateTime PaymentDate { get; set; }
+    // The India calendar date the money changed hands.
+    public DateOnly PaymentDate { get; set; }
 
     public string PaymentMode { get; set; } = "Cash";
 
     public string? Note { get; set; }
 
+    // Audit stamp for when the row was written.
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

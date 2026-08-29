@@ -1,40 +1,99 @@
-<div class="dashboard">
+@if (!isAuthenticated()) {
 
-  <!-- HEADER -->
+  <div class="login-page">
+
+    <section class="login-card">
+
+      <h1>Narera Complex</h1>
+      <p class="login-subtitle">Landlord sign in</p>
+
+      <label>
+        Username
+        <input
+          type="text"
+          name="username"
+          autocomplete="username"
+          [(ngModel)]="loginUsername"
+          (keyup.enter)="login()"
+          placeholder="Enter username" />
+      </label>
+
+      <label>
+        Password
+        <input
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          [(ngModel)]="loginPassword"
+          (keyup.enter)="login()"
+          placeholder="Enter password" />
+      </label>
+
+      @if (loginError()) {
+        <div class="error-message" role="alert">{{ loginError() }}</div>
+      }
+
+      <button
+        type="button"
+        class="login-button"
+        [disabled]="loggingIn()"
+        (click)="login()">
+        {{ loggingIn() ? 'Signing in...' : 'Sign In' }}
+      </button>
+
+    </section>
+
+  </div>
+
+} @else {
+
+<div class="dashboard">
 
   <header class="header">
 
     <div>
-      <h1>Rent Manager</h1>
+      <h1>Narera Complex</h1>
+      <p>Manage shops, tenants and rent payments</p>
+      <p class="dashboard-date">Today: {{ todayDisplay }}</p>
+    </div>
 
-      <p>
-        Manage shops, tenants and rent payments
-      </p>
+    <div class="header-account">
+      <span class="account-name">{{ displayName() }}</span>
+
+      <button type="button" class="secondary" (click)="logout()">Logout</button>
     </div>
 
   </header>
 
 
-  <!-- MESSAGES -->
-
-  @if (message) {
-
-    <div class="success-message">
-      {{ message }}
-    </div>
-
-  }
-
-  @if (errorMessage) {
-
-    <div class="error-message">
-      {{ errorMessage }}
-    </div>
-
+  @if (message()) {
+    <div class="success-message">{{ message() }}</div>
   }
 
 
-  <!-- SUMMARY -->
+  @if (popupMessage()) {
+    <div class="modal-overlay error-popup-overlay" (click)="closePopup()">
+      <section
+        class="modal-card error-popup-card"
+        role="alertdialog"
+        aria-modal="true"
+        (click)="$event.stopPropagation()">
+
+        <div class="error-popup-icon">!</div>
+
+        <div class="error-popup-content">
+          <h3>{{ popupTitle() }}</h3>
+          <p>{{ popupMessage() }}</p>
+        </div>
+
+        <div class="form-actions error-popup-actions">
+          <button type="button" (click)="closePopup()">OK</button>
+        </div>
+
+      </section>
+    </div>
+  }
+
 
   <section class="summary">
 
@@ -42,1111 +101,809 @@
       class="summary-card"
       [class.active]="activeFilter === 'all'"
       (click)="setFilter('all')">
-
       <span>Total Shops</span>
-
-      <strong>
-        {{ shops().length }}
-      </strong>
-
-      <span class="card-link">
-        View all →
-      </span>
-
+      <strong>{{ shops().length }}</strong>
+      <span class="card-link">View all</span>
     </div>
-
 
     <div
       class="summary-card"
       [class.active]="activeFilter === 'occupied'"
       (click)="setFilter('occupied')">
-
       <span>Occupied</span>
-
-      <strong>
-        {{ occupiedCount }}
-      </strong>
-
-      <span class="card-link">
-        View →
-      </span>
-
+      <strong>{{ occupiedCount() }}</strong>
+      <span class="card-link">View</span>
     </div>
-
 
     <div
       class="summary-card"
       [class.active]="activeFilter === 'vacant'"
       (click)="setFilter('vacant')">
-
       <span>Vacant</span>
-
-      <strong>
-        {{ vacantCount }}
-      </strong>
-
-      <span class="card-link">
-        View →
-      </span>
-
+      <strong>{{ vacantCount() }}</strong>
+      <span class="card-link">View</span>
     </div>
-
 
     <div
       class="summary-card"
       [class.active]="activeFilter === 'outstanding'"
       (click)="setFilter('outstanding')">
-
-      <span>Outstanding</span>
-
-      <strong>
-        ₹{{ totalOutstanding }}
-      </strong>
-
-      <span class="card-link">
-        View →
-      </span>
-
+      <span>To be Collected</span>
+      <strong>Rs {{ money(totalOutstanding()) }}</strong>
+      <span class="card-link">View</span>
     </div>
 
   </section>
 
 
-  <!-- SHOPS -->
-
   <section class="card">
 
     <div class="section-header">
-
       <div>
-
         <h2>Shops</h2>
-
-        <p>
-          Manage shops and tenants
-        </p>
-
+        <p>Manage shops and tenants</p>
       </div>
 
-
-      <button
-        type="button"
-        (click)="openAddShop()">
-
-        + Add Shop
-
-      </button>
-
+      <button type="button" (click)="openAddShop()">+ Add Shop</button>
     </div>
 
 
-    <!-- FILTERS -->
-
     <div class="filter-bar">
-
       <button
         type="button"
         class="filter-button"
         [class.active]="activeFilter === 'all'"
-        (click)="setFilter('all')">
-
-        All
-
-      </button>
-
+        (click)="setFilter('all')">All</button>
 
       <button
         type="button"
         class="filter-button"
         [class.active]="activeFilter === 'occupied'"
-        (click)="setFilter('occupied')">
-
-        Occupied
-
-      </button>
-
+        (click)="setFilter('occupied')">Occupied</button>
 
       <button
         type="button"
         class="filter-button"
         [class.active]="activeFilter === 'vacant'"
-        (click)="setFilter('vacant')">
-
-        Vacant
-
-      </button>
-
+        (click)="setFilter('vacant')">Vacant</button>
 
       <button
         type="button"
         class="filter-button"
         [class.active]="activeFilter === 'outstanding'"
-        (click)="setFilter('outstanding')">
-
-        Outstanding
-
-      </button>
-
+        (click)="setFilter('outstanding')">Outstanding</button>
     </div>
 
 
-    <!-- SHOP FORM -->
-
-    @if (showShopForm) {
-
-      <div class="shop-form">
-
-        <h3>
-          {{
-            editingShopId === null
-              ? 'Add Shop'
-              : 'Edit Shop'
-          }}
-        </h3>
-
-        <p>
-          {{
-            editingShopId === null
-              ? 'Create a new shop.'
-              : 'Update the shop name.'
-          }}
-        </p>
-
-
-        <label>
-
-          Shop Name
-
-          <input
-            type="text"
-            [(ngModel)]="shopName"
-            placeholder="e.g. Shop A"
-            maxlength="100" />
-
-        </label>
-
-
-        <div class="form-actions">
-
-          <button
-            type="button"
-            (click)="saveShop()">
-
-            {{
-              editingShopId === null
-                ? 'Add Shop'
-                : 'Save Changes'
-            }}
-
-          </button>
-
-
-          <button
-            type="button"
-            class="secondary"
-            (click)="cancelShopForm()">
-
-            Cancel
-
-          </button>
-
-        </div>
-
-      </div>
-
-    }
-
-
-    <!-- SHOP LIST -->
-
-    @if (filteredShops.length === 0) {
+    @if (loadingShops() && shops().length === 0) {
 
       <div class="empty-state">
+        <p>Loading shops...</p>
+      </div>
 
-        <h3>
-          No shops found
-        </h3>
+    } @else if (filteredShops.length === 0) {
 
-        <p>
-          No shops match the selected filter.
-        </p>
-
+      <div class="empty-state">
+        <h3>No shops found</h3>
+        <p>No shops match the selected filter.</p>
       </div>
 
     } @else {
 
       <div class="shop-list">
 
-        @for (
-          shop of filteredShops;
-          track shop.id
-        ) {
+        @for (shop of filteredShops; track shop.id) {
 
           <div class="shop-card">
 
-            <!-- TITLE -->
-
             <div class="shop-title">
-
-              <h3>
-                {{ shop.name }}
-              </h3>
-
+              <h3>{{ shop.name }}</h3>
 
               @if (shop.isOccupied) {
-
-                <span class="status occupied">
-                  Occupied
-                </span>
-
+                <span class="status occupied">Occupied</span>
               } @else {
+                <span class="status vacant">Vacant</span>
+              }
+            </div>
 
-                <span class="status vacant">
-                  Vacant
-                </span>
+
+            @if (shop.tenant && shop.rent) {
+
+              <div class="tenant-info">
+                <p><strong>Tenant:</strong> {{ shop.tenant.name }}</p>
+                <p><strong>Mobile:</strong> {{ shop.tenant.mobileNumber }}</p>
+              </div>
+
+              <div class="shop-financials">
+
+                <div class="financial-item">
+                  <span>{{ shop.rent.monthLabel }} rent</span>
+                  <strong>Rs {{ money(shop.rent.amountDue) }}</strong>
+                </div>
+
+                <div class="financial-item">
+                  <span>Paid</span>
+                  <strong>Rs {{ money(shop.rent.amountPaid) }}</strong>
+                </div>
+
+                <div class="financial-item">
+                  <span>Total to be Paid</span>
+                  <strong
+                    [class.outstanding]="shop.rent.totalPayable > 0"
+                    [class.paid]="shop.rent.totalPayable === 0">
+                    Rs {{ money(shop.rent.totalPayable) }}
+                  </strong>
+                </div>
+
+              </div>
+
+              @if (shop.rent.previousOutstanding > 0) {
+                <p class="carry-forward-note">
+                  Includes Rs {{ money(shop.rent.previousOutstanding) }}
+                  carried forward from previous months.
+                </p>
+              }
+
+              <div class="shop-rent-status">
+
+                <div>
+                  <span>Rent status</span>
+                  <strong [class]="statusClass(shop.rent.status)">
+                    {{ statusLabel(shop.rent.status) }}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>Due date</span>
+                  <strong>{{ formatDate(shop.rent.dueDate) }}</strong>
+                </div>
+
+                <div>
+                  <span>Timing</span>
+                  <strong [class.due-soon]="shop.rent.isDueSoon">
+                    {{ shop.rent.timing }}
+                  </strong>
+                </div>
+
+              </div>
+
+              <div class="shop-actions">
+                <button type="button" (click)="manageRent(shop.tenant.id)">
+                  Manage Rent
+                </button>
+
+                <button type="button" class="secondary" (click)="openEditTenant(shop)">
+                  Edit Tenant
+                </button>
+
+                <button type="button" class="secondary" (click)="openEditShop(shop)">
+                  Edit Shop
+                </button>
+
+                <button type="button" class="danger" (click)="removeTenant(shop)">
+                  Remove Tenant
+                </button>
+              </div>
+
+            } @else {
+
+              <div class="tenant-info">
+                <p><strong>Status:</strong> No tenant assigned</p>
+              </div>
+
+              <div class="shop-actions">
+                <button type="button" (click)="openAddTenant(shop)">Add Tenant</button>
+
+                <button type="button" class="secondary" (click)="openEditShop(shop)">
+                  Edit Shop
+                </button>
+
+                <button type="button" class="danger" (click)="deleteShop(shop)">
+                  Delete
+                </button>
+              </div>
+
+            }
+
+          </div>
+
+        }
+
+      </div>
+
+    }
+
+  </section>
+
+
+  @if (showShopForm()) {
+    <div class="modal-overlay" (click)="cancelShopForm()">
+      <div class="modal-card shop-form" (click)="$event.stopPropagation()">
+
+        <h3>{{ editingShopId === null ? 'Add Shop' : 'Edit Shop' }}</h3>
+        <p>
+          {{ editingShopId === null ? 'Create a new shop.' : 'Update the shop name.' }}
+        </p>
+
+        <label>
+          Shop Name
+          <input
+            type="text"
+            [(ngModel)]="shopName"
+            (keyup.enter)="saveShop()"
+            placeholder="e.g. Shop A"
+            maxlength="100" />
+        </label>
+
+        @if (shopFormError()) {
+          <div class="error-message shop-form-error" role="alert">
+            {{ shopFormError() }}
+          </div>
+        }
+
+        <div class="form-actions">
+          <button type="button" [disabled]="savingShop()" (click)="saveShop()">
+            {{ editingShopId === null ? 'Add Shop' : 'Save Changes' }}
+          </button>
+
+          <button type="button" class="secondary" (click)="cancelShopForm()">
+            Cancel
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+
+  @if (showAddTenant()) {
+    <div class="modal-overlay" (click)="cancelAddTenant()">
+      <section class="card modal-card" (click)="$event.stopPropagation()">
+
+        <div class="section-header">
+          <div>
+            <h2>Add Tenant</h2>
+            <p>Assign a tenant to this shop.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+
+          <label>
+            Tenant Name
+            <input type="text" [(ngModel)]="tenantName" placeholder="Enter tenant name" />
+          </label>
+
+          <label>
+            Mobile Number
+            <input type="tel" [(ngModel)]="mobileNumber" placeholder="Enter mobile number" />
+          </label>
+
+          <label>
+            PAN Card
+            <input type="text" [(ngModel)]="panCard" placeholder="Optional" />
+          </label>
+
+          <label>
+            Monthly Rent
+            <input type="number" [(ngModel)]="monthlyRent" min="1" placeholder="e.g. 8000" />
+          </label>
+
+          <label>
+            Rent Due Day
+            <input
+              type="number"
+              [(ngModel)]="rentDueDay"
+              (ngModelChange)="refreshFirstRentOptions()"
+              min="1"
+              max="31" />
+          </label>
+
+          <label>
+            Security Deposit
+            <input type="number" [(ngModel)]="securityDeposit" min="0" placeholder="Optional" />
+          </label>
+
+        </div>
+
+        <div class="first-rent-choice">
+
+          <h4>When should the first rent start?</h4>
+
+          <label class="radio-option">
+            <input
+              type="radio"
+              name="firstRentMonth"
+              value="Current"
+              [(ngModel)]="firstRentMonth" />
+
+            <span>
+              <strong>
+                This month
+                @if (firstRentOptions()) {
+                  ({{ firstRentOptions()!.current.label }})
+                }
+              </strong>
+
+              @if (firstRentOptions()) {
+                @if (firstRentOptions()!.current.isBackdated) {
+                  <small>
+                    Due day has already passed &mdash; collectable from
+                    {{ formatDate(firstRentOptions()!.current.dueDate) }}
+                  </small>
+                } @else {
+                  <small>
+                    First rent due on {{ formatDate(firstRentOptions()!.current.dueDate) }}
+                  </small>
+                }
+              }
+            </span>
+          </label>
+
+          <label class="radio-option">
+            <input
+              type="radio"
+              name="firstRentMonth"
+              value="Next"
+              [(ngModel)]="firstRentMonth" />
+
+            <span>
+              <strong>
+                Following month
+                @if (firstRentOptions()) {
+                  ({{ firstRentOptions()!.next.label }})
+                }
+              </strong>
+
+              @if (firstRentOptions()) {
+                <small>
+                  First rent due on {{ formatDate(firstRentOptions()!.next.dueDate) }}
+                </small>
+              }
+            </span>
+          </label>
+
+        </div>
+
+        @if (tenantFormError()) {
+          <div class="error-message" role="alert">{{ tenantFormError() }}</div>
+        }
+
+        <div class="form-actions">
+          <button type="button" [disabled]="savingTenant()" (click)="addTenant()">
+            Save Tenant
+          </button>
+
+          <button type="button" class="secondary" (click)="cancelAddTenant()">
+            Cancel
+          </button>
+        </div>
+
+      </section>
+    </div>
+  }
+
+
+  @if (showEditTenant()) {
+    <div class="modal-overlay" (click)="cancelEditTenant()">
+      <section class="card modal-card" (click)="$event.stopPropagation()">
+
+        <div class="section-header">
+          <div>
+            <h2>Edit Tenant</h2>
+            <p>Update tenant and rental information.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+
+          <label>
+            Tenant Name
+            <input type="text" [(ngModel)]="tenantName" placeholder="Tenant name" />
+          </label>
+
+          <label>
+            Mobile Number
+            <input type="tel" [(ngModel)]="mobileNumber" placeholder="Mobile number" />
+          </label>
+
+          <label>
+            PAN Card
+            <input type="text" [(ngModel)]="panCard" placeholder="Optional" />
+          </label>
+
+          <label>
+            Monthly Rent
+            <input type="number" [(ngModel)]="monthlyRent" min="1" />
+          </label>
+
+          <label>
+            Rent Due Day
+            <input type="number" [(ngModel)]="rentDueDay" min="1" max="31" />
+          </label>
+
+          <label>
+            Security Deposit
+            <input type="number" [(ngModel)]="securityDeposit" min="0" placeholder="Optional" />
+          </label>
+
+        </div>
+
+        <div class="form-note">
+          <p>
+            A change to the monthly rent applies from next month. This
+            month's rent stays as it was generated.
+          </p>
+          <p>
+            A change to the due day applies to this month if the rent is
+            still unpaid, and from next month if this month is already
+            fully paid.
+          </p>
+        </div>
+
+        @if (tenantFormError()) {
+          <div class="error-message" role="alert">{{ tenantFormError() }}</div>
+        }
+
+        <div class="form-actions">
+          <button type="button" [disabled]="savingTenant()" (click)="updateTenant()">
+            Save Changes
+          </button>
+
+          <button type="button" class="secondary" (click)="cancelEditTenant()">
+            Cancel
+          </button>
+        </div>
+
+      </section>
+    </div>
+  }
+
+
+  @if (ledger(); as data) {
+
+    <div class="modal-overlay" (click)="closeLedger()">
+      <section class="card modal-card rent-modal" (click)="$event.stopPropagation()">
+
+        <div class="section-header">
+          <div>
+            <h2>{{ data.tenant.name }}</h2>
+            <p>
+              {{ data.tenant.shopName }} - Rent due on day
+              {{ data.tenant.rentDueDay }} of each month
+            </p>
+          </div>
+
+          <button type="button" class="secondary" (click)="closeLedger()">Close</button>
+        </div>
+
+
+        @if (data.currentMonth; as current) {
+
+          <div class="rent-summary">
+
+            <div>
+              <span>{{ current.monthLabel }} rent</span>
+              <strong>Rs {{ money(current.amountDue) }}</strong>
+            </div>
+
+            <div>
+              <span>Paid this month</span>
+              <strong>Rs {{ money(current.amountPaid) }}</strong>
+            </div>
+
+            <div>
+              <span>Previous outstanding</span>
+              <strong [class.outstanding]="data.previousOutstanding > 0">
+                Rs {{ money(data.previousOutstanding) }}
+              </strong>
+            </div>
+
+            <div class="rent-summary-main">
+              <span>Total to be Paid</span>
+              <strong
+                [class.outstanding]="data.totalPayable > 0"
+                [class.paid]="data.totalPayable === 0">
+                Rs {{ money(data.totalPayable) }}
+              </strong>
+            </div>
+
+          </div>
+
+          <div class="rent-status-line">
+            <span [class]="statusClass(current.status)">
+              {{ statusLabel(current.status) }}
+            </span>
+
+            <span>
+              Due {{ formatDate(current.dueDate) }} -
+              <strong [class.due-soon]="current.isDueSoon">{{ current.timing }}</strong>
+            </span>
+          </div>
+
+          @if (data.upcomingRentAmount; as upcoming) {
+            <p class="form-note">
+              New rent of Rs {{ money(upcoming.amount) }} applies from
+              {{ upcoming.effectiveFrom }}.
+            </p>
+          }
+
+        } @else {
+          <div class="empty-state">
+            <p>Rent for this tenant has not started yet.</p>
+          </div>
+        }
+
+
+        <div class="payment-section">
+
+          <h3>Record Payment</h3>
+
+          @if (data.totalPayable > 0) {
+
+            <div class="payment-total">
+              <div>
+                <span>Previous outstanding</span>
+                <strong>Rs {{ money(data.previousOutstanding) }}</strong>
+              </div>
+
+              <div>
+                <span>This month's balance</span>
+                <strong>Rs {{ money(data.currentMonth?.remaining ?? 0) }}</strong>
+              </div>
+
+              <div class="payment-total-main">
+                <span>Total to be Paid</span>
+                <strong>Rs {{ money(data.totalPayable) }}</strong>
+              </div>
+            </div>
+
+            <div class="payment-options">
+              <button
+                type="button"
+                [class.active]="paymentType === 'full'"
+                (click)="selectFullPayment()">
+                Paid Fully
+              </button>
+
+              <button
+                type="button"
+                [class.active]="paymentType === 'partial'"
+                (click)="selectPartialPayment()">
+                Paid Partially
+              </button>
+            </div>
+
+            @if (paymentType === 'full') {
+              <div class="payment-info">
+                <span>Amount to clear all dues</span>
+                <strong>Rs {{ money(data.totalPayable) }}</strong>
+              </div>
+            } @else {
+              <label class="payment-input">
+                Amount Received
+                <input
+                  type="number"
+                  [(ngModel)]="paymentAmount"
+                  min="1"
+                  [max]="data.totalPayable"
+                  placeholder="Enter amount" />
+                <small>Maximum: Rs {{ money(data.totalPayable) }}</small>
+              </label>
+
+              @if (paymentAmount && paymentAmount > 0) {
+                <div class="remaining-preview">
+                  <span>Balance after this payment</span>
+                  <strong>Rs {{ money(remainingAfterPayment) }}</strong>
+                </div>
+              }
+            }
+
+            <div class="form-grid payment-meta">
+              <label>
+                Payment Date
+                <input type="date" [(ngModel)]="paymentDate" />
+              </label>
+
+              <label>
+                Payment Mode
+                <input type="text" [(ngModel)]="paymentMode" placeholder="Cash / UPI / Bank" />
+              </label>
+            </div>
+
+            @if (paymentError()) {
+              <div class="error-message" role="alert">{{ paymentError() }}</div>
+            }
+
+            <button type="button" [disabled]="savingPayment()" (click)="recordPayment()">
+              Record Payment
+            </button>
+
+            <small class="payment-allocation-note">
+              The amount is applied to the oldest unpaid month first.
+            </small>
+
+          } @else {
+
+            <div class="empty-state">
+              <p>Nothing to collect right now.</p>
+
+              @if (data.nextExpected; as next) {
+                <p class="next-expected">
+                  Next: {{ next.monthLabel }} rent of Rs {{ money(next.amountDue) }},
+                  due {{ formatDate(next.dueDate) }} ({{ next.timing }}).
+                </p>
+              }
+            </div>
+
+          }
+
+          <button
+            type="button"
+            class="secondary whatsapp-button"
+            (click)="sendWhatsAppMessage()">
+            Send WhatsApp update
+          </button>
+
+        </div>
+
+
+        <div class="rent-history">
+
+          <h3>Rent History</h3>
+
+          @if (data.history.length === 0) {
+            <div class="empty-state">
+              <p>No rent history yet.</p>
+            </div>
+          } @else {
+
+            <div class="rent-history-list">
+
+              @for (rent of data.history; track rent.id) {
+
+                <div class="rent-history-row">
+
+                  <div class="rent-history-head">
+                    <strong>{{ rent.monthLabel }}</strong>
+                    <span class="rent-history-status" [class]="statusClass(rent.status)">
+                      {{ statusLabel(rent.status) }}
+                    </span>
+                  </div>
+
+                  <div class="rent-history-figures">
+                    <div>
+                      <span>Rent</span>
+                      <strong>Rs {{ money(rent.amountDue) }}</strong>
+                    </div>
+
+                    <div>
+                      <span>Paid</span>
+                      <strong>Rs {{ money(rent.amountPaid) }}</strong>
+                    </div>
+
+                    <div>
+                      <span>Balance</span>
+                      <strong
+                        [class.outstanding]="rent.remaining > 0"
+                        [class.paid]="rent.remaining === 0">
+                        Rs {{ money(rent.remaining) }}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Due date</span>
+                      <strong>{{ formatDate(rent.dueDate) }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="rent-payment-history">
+
+                    @if (rent.payments.length > 0) {
+
+                      <strong>Payments</strong>
+
+                      @for (payment of rent.payments; track payment.id) {
+                        <div class="payment-history-item">
+                          <span>{{ formatDate(payment.paymentDate) }}</span>
+                          <span class="payment-mode">{{ payment.paymentMode }}</span>
+                          <strong>Rs {{ money(payment.amount) }}</strong>
+
+                          <div class="payment-history-actions">
+                            <button
+                              type="button"
+                              class="secondary small-button"
+                              (click)="openEditPayment(payment)">
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              class="danger small-button"
+                              (click)="deletePayment(payment)">
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      }
+
+                    } @else {
+                      <span class="no-payment-history">No payment recorded</span>
+                    }
+
+                  </div>
+
+                </div>
 
               }
 
             </div>
 
-
-            <!-- OCCUPIED SHOP -->
-
-            @if (shop.tenant) {
-
-              <div class="tenant-info">
-
-                <p>
-                  <strong>Tenant:</strong>
-                  {{ shop.tenant.name }}
-                </p>
-
-                <p>
-                  <strong>Mobile:</strong>
-                  {{ shop.tenant.mobileNumber }}
-                </p>
-
-              </div>
-
-
-              <!-- FINANCIALS -->
-
-              <div class="shop-financials">
-
-                <div class="financial-item">
-
-                  <span>
-                    Monthly Rent
-                  </span>
-
-                  <strong>
-                    ₹{{ getShopRent(shop) }}
-                  </strong>
-
-                </div>
-
-
-                <div class="financial-item">
-
-                  <span>
-                    Paid
-                  </span>
-
-                  <strong>
-                    ₹{{ getShopPaid(shop) }}
-                  </strong>
-
-                </div>
-
-
-                <div class="financial-item">
-
-                  <span>
-                    Outstanding
-                  </span>
-
-                  <strong
-                    [class.outstanding]="
-                      getShopOutstanding(shop) > 0
-                    "
-                    [class.paid]="
-                      getShopOutstanding(shop) === 0
-                    ">
-
-                    ₹{{ getShopOutstanding(shop) }}
-
-                  </strong>
-
-                </div>
-
-              </div>
-
-
-              <!-- TENANT ACTIONS -->
-
-              <div class="shop-actions">
-
-                <button
-                  type="button"
-                  (click)="manageTenant(shop.tenant.id)">
-
-                  Manage Rent
-
-                </button>
-
-
-                <button
-                  type="button"
-                  class="secondary"
-                  (click)="openEditTenant(shop)">
-
-                  Edit Tenant
-
-                </button>
-
-
-                <button
-                  type="button"
-                  class="danger"
-                  (click)="removeTenant(shop)">
-
-                  Remove Tenant
-
-                </button>
-
-              </div>
-
-
-            } @else {
-
-              <!-- VACANT -->
-
-              <div class="tenant-info">
-
-                <p>
-                  <strong>Status:</strong>
-                  No tenant assigned
-                </p>
-
-              </div>
-
-
-              <div class="shop-actions">
-
-                <button
-                  type="button"
-                  (click)="showTenantForm(shop.id)">
-
-                  Add Tenant
-
-                </button>
-
-
-                <button
-                  type="button"
-                  class="secondary"
-                  (click)="openEditShop(shop)">
-
-                  Edit Shop
-
-                </button>
-
-
-                <button
-                  type="button"
-                  class="danger"
-                  (click)="deleteShop(shop)">
-
-                  Delete
-
-                </button>
-
-              </div>
-
-            }
-
-          </div>
-
-        }
-
-      </div>
-
-    }
-
-  </section>
-
-
-  <!-- ADD TENANT -->
-
-  @if (selectedShopId) {
-
-    <section class="card">
-
-      <div class="section-header">
-
-        <div>
-
-          <h2>
-            Add Tenant
-          </h2>
-
-          <p>
-            Assign a tenant to this shop.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div class="form-grid">
-
-        <label>
-
-          Tenant Name
-
-          <input
-            type="text"
-            [(ngModel)]="tenantName"
-            placeholder="Enter tenant name" />
-
-        </label>
-
-
-        <label>
-
-          Mobile Number
-
-          <input
-            type="tel"
-            [(ngModel)]="mobileNumber"
-            placeholder="Enter mobile number" />
-
-        </label>
-
-
-        <label>
-
-          PAN Card
-
-          <input
-            type="text"
-            [(ngModel)]="panCard"
-            placeholder="Optional" />
-
-        </label>
-
-
-        <label>
-
-          Monthly Rent
-
-          <input
-            type="number"
-            [(ngModel)]="monthlyRent"
-            min="1" />
-
-        </label>
-
-
-        <label>
-
-          Rent Due Day
-
-          <input
-            type="number"
-            [(ngModel)]="rentDueDay"
-            min="1"
-            max="31" />
-
-        </label>
-
-
-        <label>
-
-          Security Deposit
-
-          <input
-            type="number"
-            [(ngModel)]="securityDeposit"
-            min="0"
-            placeholder="Optional" />
-
-        </label>
-
-      </div>
-
-
-      <div class="form-actions">
-
-        <button
-          type="button"
-          (click)="addTenant()">
-
-          Save Tenant
-
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary"
-          (click)="cancelTenant()">
-
-          Cancel
-
-        </button>
-
-      </div>
-
-    </section>
-
-  }
-
-
-  <!-- EDIT TENANT -->
-
-  @if (showTenantEditForm) {
-
-    <section class="card">
-
-      <div class="section-header">
-
-        <div>
-
-          <h2>
-            Edit Tenant
-          </h2>
-
-          <p>
-            Update tenant and rental information.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div class="form-grid">
-
-        <label>
-
-          Tenant Name
-
-          <input
-            type="text"
-            [(ngModel)]="tenantName"
-            placeholder="Tenant name" />
-
-        </label>
-
-
-        <label>
-
-          Mobile Number
-
-          <input
-            type="tel"
-            [(ngModel)]="mobileNumber"
-            placeholder="Mobile number" />
-
-        </label>
-
-
-        <label>
-
-          PAN Card
-
-          <input
-            type="text"
-            [(ngModel)]="panCard"
-            placeholder="Optional" />
-
-        </label>
-
-
-        <label>
-
-          Monthly Rent
-
-          <input
-            type="number"
-            [(ngModel)]="monthlyRent"
-            min="1" />
-
-        </label>
-
-
-        <label>
-
-          Rent Due Day
-
-          <input
-            type="number"
-            [(ngModel)]="rentDueDay"
-            min="1"
-            max="31" />
-
-        </label>
-
-
-        <label>
-
-          Security Deposit
-
-          <input
-            type="number"
-            [(ngModel)]="securityDeposit"
-            min="0"
-            placeholder="Optional" />
-
-        </label>
-
-      </div>
-
-
-      <div class="form-actions">
-
-        <button
-          type="button"
-          (click)="updateTenant()">
-
-          Save Changes
-
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary"
-          (click)="cancelTenantEdit()">
-
-          Cancel
-
-        </button>
-
-      </div>
-
-    </section>
-
-  }
-
-
-  <!-- RENT MANAGEMENT -->
-
-  @if (
-    selectedTenantId &&
-    selectedRent()
-  ) {
-
-    <section class="card">
-
-      <div class="section-header">
-
-        <div>
-
-          <h2>
-            {{ selectedRent()?.tenantName }}
-          </h2>
-
-          <p>
-            Rent for
-            {{ selectedRent()?.month }}/{{ selectedRent()?.year }}
-          </p>
-
-        </div>
-
-
-        <button
-          type="button"
-          class="secondary"
-          (click)="closeTenant()">
-
-          Close
-
-        </button>
-
-      </div>
-
-
-      <div class="rent-summary">
-
-        <div>
-
-          <span>
-            Rent Due
-          </span>
-
-          <strong>
-            ₹{{ selectedRent()?.amountDue }}
-          </strong>
-
-        </div>
-
-
-        <div>
-
-          <span>
-            Paid
-          </span>
-
-          <strong>
-            ₹{{ selectedRent()?.amountPaid }}
-          </strong>
-
-        </div>
-
-
-        <div>
-
-          <span>
-            Outstanding
-          </span>
-
-          <strong>
-            ₹{{ selectedRent()?.remaining }}
-          </strong>
-
-        </div>
-
-
-        <div>
-
-          <span>
-            Status
-          </span>
-
-
-          @if (selectedRent()?.isSettled) {
-
-            <strong class="paid">
-              Paid
-            </strong>
-
-          } @else if (
-            (selectedRent()?.amountPaid ?? 0) > 0
-          ) {
-
-            <strong class="partial">
-              Partially Paid
-            </strong>
-
-          } @else {
-
-            <strong class="pending">
-              Pending
-            </strong>
-
           }
 
         </div>
 
-      </div>
 
+        @if (editingPaymentId() !== null) {
+          <div class="modal-overlay" (click)="cancelEditPayment()">
+            <div class="modal-card" (click)="$event.stopPropagation()">
 
-      <!-- PAYMENT -->
+              <div class="modal-header">
+                <div>
+                  <h3>Edit Payment</h3>
+                  <p>The rent balance is recalculated after saving.</p>
+                </div>
 
-      @if (
-        !selectedRent()?.isSettled &&
-        (selectedRent()?.remaining ?? 0) > 0
-      ) {
-
-        <div class="payment-section">
-
-          <h3>
-            Record Payment
-          </h3>
-
-
-          <div class="payment-options">
-
-            <button
-              type="button"
-              [class.active]="paymentType === 'full'"
-              (click)="selectFullPayment()">
-
-              Paid Fully
-
-            </button>
-
-
-            <button
-              type="button"
-              [class.active]="paymentType === 'partial'"
-              (click)="selectPartialPayment()">
-
-              Paid Partially
-
-            </button>
-
-          </div>
-
-
-          @if (paymentType === 'full') {
-
-            <div class="payment-info">
-
-              <span>
-                Amount to receive
-              </span>
-
-              <strong>
-                ₹{{ selectedRent()?.remaining }}
-              </strong>
-
-            </div>
-
-          } @else {
-
-            <label class="payment-input">
-
-              Amount Received
-
-              <input
-                type="number"
-                [(ngModel)]="paymentAmount"
-                min="1"
-                [max]="selectedRent()?.remaining ?? 0"
-                placeholder="Enter amount" />
-
-              <small>
-                Maximum:
-                ₹{{ selectedRent()?.remaining }}
-              </small>
-
-            </label>
-
-
-            @if (
-              paymentAmount > 0 &&
-              paymentAmount <
-                (selectedRent()?.remaining ?? 0)
-            ) {
-
-              <div class="remaining-preview">
-
-                <span>
-                  Remaining after payment
-                </span>
-
-                <strong>
-                  ₹{{
-                    (selectedRent()?.remaining ?? 0)
-                    - paymentAmount
-                  }}
-                </strong>
-
+                <button
+                  type="button"
+                  class="secondary modal-close"
+                  (click)="cancelEditPayment()">x</button>
               </div>
 
-            }
+              <div class="form-grid">
+                <label>
+                  Amount Received
+                  <input type="number" [(ngModel)]="editingPaymentAmount" min="1" />
+                </label>
 
-          }
+                <label>
+                  Payment Date
+                  <input type="date" [(ngModel)]="editingPaymentDate" />
+                </label>
 
+                <label>
+                  Payment Mode
+                  <input type="text" [(ngModel)]="editingPaymentMode" />
+                </label>
 
-          <button
-            type="button"
-            (click)="markPayment()">
-
-            Record Payment
-
-          </button>
-
-        </div>
-
-      }
-
-
-      <!-- PAYMENT HISTORY -->
-
-      <div class="payment-history">
-
-        <h3>
-          Payment History
-        </h3>
-
-
-        @if (
-          payments().length === 0
-        ) {
-
-          <div class="empty-state">
-
-            <p>
-              No payments recorded yet.
-            </p>
-
-          </div>
-
-        } @else {
-
-          @for (
-            payment of payments();
-            track payment.id
-          ) {
-
-            <div class="payment-row">
-
-              <div>
-
-                <strong>
-                  ₹{{ payment.amount }}
-                </strong>
-
-                <span>
-                  {{ payment.paymentMode }}
-                </span>
-
+                <label>
+                  Note
+                  <input type="text" [(ngModel)]="editingPaymentNote" />
+                </label>
               </div>
 
+              @if (editPaymentError()) {
+                <div class="error-message" role="alert">{{ editPaymentError() }}</div>
+              }
 
-              <div>
+              <div class="form-actions">
+                <button type="button" (click)="savePaymentCorrection()">
+                  Save Correction
+                </button>
 
-                {{
-                  payment.paymentDate
-                    | date:'dd MMM yyyy, hh:mm a'
-                }}
-
+                <button type="button" class="secondary" (click)="cancelEditPayment()">
+                  Cancel
+                </button>
               </div>
 
             </div>
-
-          }
-
+          </div>
         }
 
-      </div>
-
-    </section>
-
-  }
-
-
-  <!-- NOTIFICATIONS -->
-
-  <section class="card">
-
-    <div class="section-header">
-
-      <div>
-
-        <h2>
-          Notifications
-        </h2>
-
-        <p>
-          Payment confirmations and rent reminders
-        </p>
-
-      </div>
-
-
-      <div class="notification-actions">
-
-        <button
-          type="button"
-          class="secondary"
-          (click)="generateReminders()">
-
-          Generate Reminders
-
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary"
-          (click)="processNotifications()">
-
-          Process
-
-        </button>
-
-      </div>
-
+      </section>
     </div>
-
-
-    @if (
-      notifications().length === 0
-    ) {
-
-      <div class="empty-state">
-
-        <h3>
-          No notifications
-        </h3>
-
-        <p>
-          Payment confirmations and rent reminders
-          will appear here.
-        </p>
-
-      </div>
-
-    } @else {
-
-      <div class="notification-list">
-
-        @for (
-          notification of notifications();
-          track notification.id
-        ) {
-
-          <div class="notification-row">
-
-            <div class="notification-main">
-
-              <div class="notification-title">
-
-                <strong>
-                  {{ notification.tenantName }}
-                </strong>
-
-
-                <span
-                  class="notification-status"
-                  [class.pending]="
-                    notification.status === 'Pending'
-                  "
-                  [class.sent]="
-                    notification.status === 'Sent'
-                  ">
-
-                  {{ notification.status }}
-
-                </span>
-
-              </div>
-
-
-              <p>
-                {{ notification.message }}
-              </p>
-
-
-              <small>
-
-                {{ notification.channel }}
-                ·
-                {{ notification.type }}
-                ·
-                {{
-                  notification.createdAt
-                    | date:'dd MMM yyyy, hh:mm a'
-                }}
-
-              </small>
-
-            </div>
-
-          </div>
-
-        }
-
-      </div>
-
-    }
-
-  </section>
+  }
 
 </div>
+
+}
