@@ -60,6 +60,7 @@
     <div class="header-account">
       <span class="account-name">{{ displayName() }}</span>
 
+      <button type="button" class="secondary" (click)="openPasswordForm()">Password</button>
       <button type="button" class="secondary" (click)="logout()">Logout</button>
     </div>
 
@@ -907,3 +908,55 @@
 </div>
 
 }
+
+  @if (showPasswordForm()) {
+    <div class="modal-overlay" (click)="cancelPasswordForm()">
+      <div class="modal-card shop-form" (click)="$event.stopPropagation()">
+
+        <h3>Change Password</h3>
+        <p>Choose something only you know. Minimum 8 characters.</p>
+
+        <label>
+          Current Password
+          <input
+            type="password"
+            autocomplete="current-password"
+            [(ngModel)]="currentPassword" />
+        </label>
+
+        <label>
+          New Password
+          <input
+            type="password"
+            autocomplete="new-password"
+            [(ngModel)]="newPassword" />
+        </label>
+
+        <label>
+          Confirm New Password
+          <input
+            type="password"
+            autocomplete="new-password"
+            (keyup.enter)="savePassword()"
+            [(ngModel)]="confirmPassword" />
+        </label>
+
+        @if (passwordError()) {
+          <div class="error-message shop-form-error" role="alert">
+            {{ passwordError() }}
+          </div>
+        }
+
+        <div class="form-actions">
+          <button type="button" [disabled]="savingPassword()" (click)="savePassword()">
+            {{ savingPassword() ? 'Saving...' : 'Change Password' }}
+          </button>
+
+          <button type="button" class="secondary" (click)="cancelPasswordForm()">
+            Cancel
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }

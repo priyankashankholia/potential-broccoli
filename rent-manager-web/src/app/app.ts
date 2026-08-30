@@ -212,6 +212,67 @@ export class App {
   showShopForm = signal(false);
   editingShopId: number | null = null;
   shopName = '';
+  // Change password
+  showPasswordForm = signal(false);
+  currentPassword = '';
+  newPassword = '';
+  confirmPassword = '';
+  passwordError = signal('');
+  savingPassword = signal(false);
+
+  openPasswordForm(): void {
+    this.currentPassword = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+    this.passwordError.set('');
+    this.showPasswordForm.set(true);
+  }
+
+  cancelPasswordForm(): void {
+    this.showPasswordForm.set(false);
+    this.passwordError.set('');
+  }
+
+  savePassword(): void {
+    this.passwordError.set('');
+
+    if (!this.currentPassword) {
+      this.passwordError.set('Enter your current password.');
+      return;
+    }
+
+    if (this.newPassword.trim().length < 8) {
+      this.passwordError.set('New password must be at least 8 characters.');
+      return;
+    }
+
+    if (this.newPassword !== this.confirmPassword) {
+      this.passwordError.set('The two new passwords do not match.');
+      return;
+    }
+
+    if (this.newPassword === this.currentPassword) {
+      this.passwordError.set('The new password must be different.');
+      return;
+    }
+
+    this.savingPassword.set(true);
+
+    this.auth.changePassword(this.currentPassword, this.newPassword).subscribe({
+      next: () => {
+        this.savingPassword.set(false);
+        this.showPasswordForm.set(false);
+        this.showPopup('Password changed. Use the new one next time you sign in.');
+      },
+      error: (error) => {
+        this.savingPassword.set(false);
+        this.passwordError.set(
+          apiErrorMessage(error, 'Unable to change the password.')
+        );
+      }
+    });
+  }
+
   shopFormError = signal('');
   savingShop = signal(false);
 
