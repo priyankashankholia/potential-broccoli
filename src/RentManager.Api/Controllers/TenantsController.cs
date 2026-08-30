@@ -360,7 +360,7 @@ public class TenantsController : ControllerBase
 
         // Records when they left, which is what stops rent generating for
         // months after the shop was handed back.
-        tenant.LeaseEndDate = IndiaClock.Today().ToDateTime(TimeOnly.MinValue);
+        tenant.LeaseEndDate = DateTime.SpecifyKind(IndiaClock.Today().ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
 
         await _db.SaveChangesAsync();
 
