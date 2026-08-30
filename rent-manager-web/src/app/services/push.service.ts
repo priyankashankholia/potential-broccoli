@@ -105,13 +105,20 @@ export class PushService {
   }
 
   // The VAPID key arrives base64url encoded; the browser wants raw bytes.
-  private toUint8(base64: string): Uint8Array {
+  // Allocating the ArrayBuffer explicitly keeps TypeScript 6 happy, since
+  // Uint8Array.from produces ArrayBufferLike and the Push API will not take it.
+  private toUint8(base64: string): Uint8Array<ArrayBuffer> {
     const padded = (base64 + '='.repeat((4 - base64.length % 4) % 4))
       .replace(/-/g, '+')
       .replace(/_/g, '/');
 
     const raw = atob(padded);
+    const bytes = new Uint8Array(new ArrayBuffer(raw.length));
 
-    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    for (let i = 0; i < raw.length; i++) {
+      bytes[i] = raw.charCodeAt(i);
+    }
+
+    return bytes;
   }
 }
