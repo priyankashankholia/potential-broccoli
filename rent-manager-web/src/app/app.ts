@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { apiErrorMessage } from './services/api-error';
 import { AuthService } from './services/auth.service';
 import { PaymentService } from './services/payment.service';
+import { PushService } from './services/push.service';
 import { RentService } from './services/rent.service';
 import { ShopService } from './services/shop.service';
 import { TenantService } from './services/tenant.service';
@@ -24,6 +25,7 @@ type DashboardFilter = 'all' | 'occupied' | 'vacant' | 'outstanding';
 export class App {
 
   private readonly auth = inject(AuthService);
+  readonly push = inject(PushService);
   private readonly shopService = inject(ShopService);
   private readonly tenantService = inject(TenantService);
   private readonly rentService = inject(RentService);
@@ -44,6 +46,20 @@ export class App {
   constructor() {
     if (this.isAuthenticated()) {
       this.loadShops();
+      this.push.refresh();
+    }
+  }
+
+  async toggleNotifications(): Promise<void> {
+    if (this.push.enabled()) {
+      await this.push.disable();
+      return;
+    }
+
+    const error = await this.push.enable();
+
+    if (error) {
+      this.showPopup(error);
     }
   }
 

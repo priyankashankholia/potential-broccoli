@@ -60,6 +60,16 @@
     <div class="header-account">
       <span class="account-name">{{ displayName() }}</span>
 
+      @if (push.supported) {
+        <button
+          type="button"
+          class="secondary"
+          [disabled]="push.busy()"
+          (click)="toggleNotifications()">
+          {{ push.enabled() ? 'Alerts on' : 'Alerts off' }}
+        </button>
+      }
+
       <button type="button" class="secondary" (click)="openPasswordForm()">Password</button>
       <button type="button" class="secondary" (click)="logout()">Logout</button>
     </div>
