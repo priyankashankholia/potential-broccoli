@@ -16,9 +16,14 @@ public class RentManagerDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PushSubscription>()
+            .HasIndex(s => s.Endpoint)
+            .IsUnique();
+
         modelBuilder.Entity<Shop>()
             .HasOne(s => s.Tenant)
             .WithOne(t => t.Shop)

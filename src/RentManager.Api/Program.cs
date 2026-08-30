@@ -64,6 +64,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddScoped<RentLedgerService>();
 builder.Services.AddScoped<RentGenerationService>();
+builder.Services.AddScoped<PushService>();
 builder.Services.AddHostedService<RentGenerationBackgroundService>();
 
 builder.Services.AddScoped<RentReminderService>();

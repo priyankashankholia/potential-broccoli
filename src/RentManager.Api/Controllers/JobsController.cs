@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RentManager.Api.Data;
 using RentManager.Api.Services;
 
 namespace RentManager.Api.Controllers;
@@ -13,22 +15,28 @@ namespace RentManager.Api.Controllers;
 [Route("api/jobs")]
 public class JobsController : ControllerBase
 {
+    private readonly RentManagerDbContext _db;
     private readonly RentGenerationService _generation;
     private readonly RentReminderService _reminders;
     private readonly NotificationDeliveryService _delivery;
+    private readonly PushService _push;
     private readonly IConfiguration _configuration;
     private readonly ILogger<JobsController> _logger;
 
     public JobsController(
+        RentManagerDbContext db,
         RentGenerationService generation,
         RentReminderService reminders,
         NotificationDeliveryService delivery,
+        PushService push,
         IConfiguration configuration,
         ILogger<JobsController> logger)
     {
+        _db = db;
         _generation = generation;
         _reminders = reminders;
         _delivery = delivery;
+        _push = push;
         _configuration = configuration;
         _logger = logger;
     }
@@ -65,13 +73,35 @@ public class JobsController : ControllerBase
         var delivered = await _delivery.ProcessPendingNotificationsAsync(
             cancellationToken);
 
+        // One push a day, and only when there is something to act on. A
+        // notification that says "nothing to do" trains him to ignore them.
+        var pending = await _db.Notifications
+            .Where(n => n.Status == "Pending")
+            .Select(n => n.TenantId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var pushed = 0;
+
+        if (pending > 0)
+        {
+            pushed = await _push.SendToAllAsync(
+                "Narera Complex",
+                pending == 1
+                    ? "1 shop needs chasing today"
+                    : $"{pending} shops need chasing today",
+                "/",
+                cancellationToken);
+        }
+
         _logger.LogInformation(
-            "Daily job: {Rents} rents, {Reminders} reminders, {Delivered} delivered.",
+            "Daily job: {Rents} rents, {Reminders} reminders, {Delivered} delivered, {Pushed} pushed.",
             rents,
             reminders,
-            delivered);
+            delivered,
+            pushed);
 
-        return Ok(new { rents, reminders, delivered });
+        return Ok(new { rents, reminders, delivered, pushed });
     }
 
     // A plain == on secrets leaks length and prefix through timing.
